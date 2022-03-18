@@ -1,0 +1,4 @@
+supervisely==6.8.3
+supervisely[apps]==6.8.3
+pydicom==2.2.2
+pynrrd==0.4.2
