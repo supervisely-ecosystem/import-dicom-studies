@@ -4,7 +4,7 @@
   "categories": [
     "Import"
   ],
-  "description": "Convert dicom data to nrrd format and creates a new project with grouped images",
+  "description": "Convert DICOM data to nrrd format and creates a new project with images grouped by selected metadata",
   "docker_image": "supervisely/base-py-sdk:6.8.3",
   "main_script": "src/main.py",
   "modal_template": "src/modal.html",
@@ -14,7 +14,7 @@
     "manualGroupTag": null
   },
   "task_location": "workspace_tasks",
-  "icon": "https://i.imgur.com/MxlNwDM.png",
+  "icon": "https://i.imgur.com/lAEupML.png",
   "icon_cover": false,
   "icon_background": "#FFFFFF",
   "headless": true,
