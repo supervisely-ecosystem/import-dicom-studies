@@ -34,22 +34,23 @@ def import_images_groups(api: sly.Api, task_id: int, context: dict, state: dict,
         for batch in sly.batched(ds_images_paths, 50):
             images_paths = []
             images_names = []
-            images_metas = []
+            # images_metas = []
             anns = []
 
             for batch_image_path in batch:
-                image_path, image_name, image_meta, ann = sly_utils.dcm2nrrd(batch_image_path, g.GROUP_TAG_NAME)
+                image_path, image_name, ann = sly_utils.dcm2nrrd(batch_image_path, g.GROUP_TAG_NAME)
+                # image_path, image_name, image_meta, ann = sly_utils.dcm2nrrd(batch_image_path, g.GROUP_TAG_NAME)
                 images_paths.append(image_path)
                 images_names.append(image_name)
-                images_metas.append(image_meta)
+                # images_metas.append(image_meta)
                 anns.append(ann)
 
             dst_image_infos = api.image.upload_paths(dataset_id=dataset.id, names=images_names, paths=images_paths)
             dst_image_ids = [img_info.id for img_info in dst_image_infos]
             api.annotation.upload_anns(img_ids=dst_image_ids, anns=anns)
 
-            for image_id, image_meta in zip(dst_image_ids, images_metas):
-                api.image.update_meta(image_id, image_meta)
+            # for image_id, image_meta in zip(dst_image_ids, images_metas):
+            #     api.image.update_meta(image_id, image_meta)
 
             batch_progress.iters_done_report(len(batch))
         ds_progress.iter_done_report()

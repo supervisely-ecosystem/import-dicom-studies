@@ -9,7 +9,17 @@
   "main_script": "src/main.py",
   "modal_template": "src/modal.html",
   "modal_template_state": {
-    "groupTag": "StudyInstanceUID"
+    "tagMode": "prepared",
+    "groupTag": "StudyInstanceUID",
+    "uploadMeta": false,
+    "addTagsFromDcm": true,
+    "dcmTags": {
+      "tags": [
+        "Manufacturer",
+        "ManufacturerModelName",
+        "Modality"
+      ]
+    }
   },
   "task_location": "workspace_tasks",
   "icon": "https://i.imgur.com/MxlNwDM.png",

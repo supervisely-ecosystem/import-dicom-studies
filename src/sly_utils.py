@@ -154,9 +154,12 @@ def create_ann_with_tags(path_to_img: str, group_tag_info: dict, dcm_tags: List[
     tags_to_add = [group_tag]
     if dcm_tags is not None:
         tags_to_add += dcm_tags
-
     ann = sly.Annotation.from_img_path(path_to_img)
-    ann = ann.add_tags(sly.TagCollection(tags_to_add))
+    tags_with_values = []
+    for tag in tags_to_add:
+        if tag.value is not None:
+            tags_with_values.append(tag)
+    ann = ann.add_tags(sly.TagCollection(tags_with_values))
     return ann
 
 
@@ -171,21 +174,15 @@ def get_meta_from_dcm(dcm):
 
 def dcm2nrrd(image_path, group_tag_name):
     dcm = pydicom.read_file(image_path)
-
     dcm_tags = None
     if g.ADD_DCM_TAGS:
         dcm_tags = create_dcm_tags(dcm)
 
-    image_meta = None
-    if g.UPLOAD_META:
-        image_meta = get_meta_from_dcm(dcm)
+    # image_meta = None
+    # if g.UPLOAD_META:
+    #     image_meta = get_meta_from_dcm(dcm)
 
-    group_tag_value = dcm[group_tag_name].value
-    # check if ann created if value none
-    if group_tag_value is None:
-        g.my_app.logger.warn(f"{get_file_name(image_path)} don't have {group_tag_value}")
-    group_tag = {"name": group_tag_name, "value": group_tag_value}
-
+    group_tag = {"name": group_tag_name, "value": dcm[group_tag_name].value}
     pixel_data = dcm.pixel_array
     pixel_data = sly.image.rotate(img=pixel_data, degrees_angle=270)
 
@@ -194,4 +191,5 @@ def dcm2nrrd(image_path, group_tag_name):
     nrrd.write(save_path, pixel_data)
 
     ann = create_ann_with_tags(save_path, group_tag, dcm_tags)
-    return save_path, image_name, image_meta, ann
+    return save_path, image_name, ann
+    # return save_path, image_name, image_meta, ann
