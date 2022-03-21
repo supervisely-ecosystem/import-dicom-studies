@@ -7,7 +7,7 @@
             <sly-field title="Select one of the prepared tags"
                        description="if you did not find the tag you need, enter its name manually in 'Manual input'  tab">
             </sly-field>
-            <el-select v-model="state.preparedGroupTag" placeholder="Select">
+            <el-select v-model="state.groupTag" placeholder="Select">
                 <el-option key="StudyInstanceUID" label="Study Instance UID" value="StudyInstanceUID"></el-option>
                 <el-option key="SeriesInstanceUID" label="Series Instance UID" value="SeriesInstanceUID"></el-option>
             </el-select>
@@ -18,7 +18,7 @@
             </el-radio>
             <sly-field title="Input name of grouping tag"
                        description="Name of the tag must match dicom metadata field name">
-                <el-input v-model="state.customGroupTag"
+                <el-input v-model="state.groupTag"
                           placeholder="Name of the grouping tag e.g. Manufacturer"></el-input>
             </sly-field>
         </el-tab-pane>
