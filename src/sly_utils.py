@@ -117,8 +117,14 @@ def dcm2nrrd(image_path, study_iuid_tag_meta, series_iui_tag_meta):
     study_iuid = dcm.StudyInstanceUID
     series_iuid = dcm.SeriesInstanceUID
     pixel_data = dcm.pixel_array
+    pixel_data = sly.image.rotate(img=pixel_data, degrees_angle=270)
 
-    image_name = get_file_name(image_path) + ".nrrd"
+    # to save original name of dcm file without ext
+    image_name_with_ext, image_ext = get_file_name_with_ext(image_path), get_file_ext(image_path)
+    if image_ext.lstrip('.').isnumeric():
+        image_name = image_name_with_ext + ".nrrd"
+    else:
+        image_name = get_file_name(image_path) + ".nrrd"
     save_path = os.path.join(os.path.dirname(image_path), image_name)
     nrrd.write(save_path, pixel_data)
     ann = create_ann_with_uid_tags(save_path, study_iuid, series_iuid, study_iuid_tag_meta, series_iui_tag_meta)

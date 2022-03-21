@@ -16,7 +16,7 @@ def import_images_groups(api: sly.Api, task_id: int, context: dict, state: dict,
     g.project_meta, study_iuid_tag_meta, series_iui_tag_meta = sly_utils.create_meta_with_tags()
     new_project = api.project.create(workspace_id=g.WORKSPACE_ID, name=project_name, change_name_if_conflict=True)
     api.project.update_meta(id=new_project.id, meta=g.project_meta.to_json())
-    # api.project.images_grouping(id=new_project.id, enable=True, tag_name=g.GROUP_TAG_NAME)
+    api.project.images_grouping(id=new_project.id, enable=True, tag_name=g.GROUP_TAG_NAME)
 
     datasets_paths = [os.path.join(project_dir, item) for item in os.listdir(
         project_dir) if os.path.isdir(os.path.join(project_dir, item))]
@@ -63,7 +63,6 @@ if __name__ == '__main__':
     sly.main_wrapper("main", main)
 
 
-# @TODO: fix rotation
-# @TODO: import files without extension
+# @TODO: fix rotation?
 # @TODO: modal window with tag selector (2 default tags) and tabs (default, custom)
 # @TODO: add more fields from dicom file?

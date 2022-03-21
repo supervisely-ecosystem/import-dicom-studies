@@ -1,6 +1,9 @@
 <div>
-    <sly-field title="Create group tag"
-               description="Creates tag with the following name and attach it to grouped images.">
-        <el-input v-model="state.groupTagName" placeholder="Please input name for group tag"></el-input>
+    <sly-field title="Select grouping tag"
+               description="All imported images will be grouped by selected tag">
+        <el-select v-model="state.groupTag" placeholder="Select">
+            <el-option key="study_iuid" label="Study Instance UID" value="study_iuid"></el-option>
+            <el-option key="series_iuid" label="Series Instance UID" value="series_iuid"></el-option>
+        </el-select>
     </sly-field>
 </div>
