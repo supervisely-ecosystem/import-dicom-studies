@@ -22,14 +22,15 @@
 </div>
 
 # Overview
-Converts `DICOM` data to `nrrd` format and creates a new project in the current `Team` -> `Workspace`.
+Converts `DICOM` data to `nrrd` format and creates a new project with tagged images in the current `Team` -> `Workspace`.
 
 Application key points:
 * Select grouping tag from prepared tags or manually input tag name
+* Tag name must match DICOM metadata field name
+* Tag value is defined by metadata from `DICOM` file
 * Manually inputted tag must match name of the `DICOM` metadata field e.g `AcquisitionDate`
 * `Images Grouping` option will be turned on by default in the created project
 * Images will be grouped by selected tag's value
-* Tag value is defined by metadata from `DICOM` file
 * Supports `DICOM` files without extention e.g. `1.2.3.4.5.6.10.10.100.110.10000.00000000000000.0000`
 * Converts `DICOM` to `nrrd` format
 
@@ -88,7 +89,7 @@ IMG-0001-00004.nrrd    | `AcquisitionDate`: `20200928`
 
 Prepare project and drag and drop it to `Team Files`.
 
-<img src="https://github.com/supervisely-ecosystem/import-images-groups/releases/download/v0.0.2/drag-n-drop.gif?raw=true"/>
+<img src="https://github.com/supervisely-ecosystem/import-dicom-studies/releases/download/v0.0.1/drag-and-drop.gif?raw=true"/>
 
 # How To Run 
 **Step 1.** Add [Import DICOM studies](https://ecosystem.supervise.ly/apps/import-dicom-studies) app to your team from Ecosystem
