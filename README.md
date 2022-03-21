@@ -7,9 +7,7 @@
   <a href="#Overview">Overview</a> •
   <a href="#Preparation">Preparation</a> •
   <a href="#How-To-Run">How To Run</a> •
-  <a href="#How-To-Use">How To Use</a> •
-  <a href="#Additional-Settings">Additional Settings</a> •
-  <a href="#Demo-Video">Demo Video</a>
+  <a href="#How-To-Use">How To Use</a>
 </p>
   
 [![](https://img.shields.io/badge/supervisely-ecosystem-brightgreen)](https://ecosystem.supervise.ly/apps/supervisely-ecosystem/import-dicom-studies)
