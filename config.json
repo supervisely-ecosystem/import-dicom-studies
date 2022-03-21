@@ -14,23 +14,16 @@
     "manualGroupTag": null,
     "uploadMeta": false,
     "addTagsFromDcm": true,
-    "dcmTags": {
-      "tags": [
-        "Manufacturer",
-        "ManufacturerModelName",
-        "Modality"
+    "dcmTags": "{'tags': ['Manufacturer', 'ManufacturerModelName', 'Modality']}",
+    "task_location": "workspace_tasks",
+    "icon": "https://i.imgur.com/MxlNwDM.png",
+    "icon_cover": false,
+    "icon_background": "#FFFFFF",
+    "headless": true,
+    "context_menu": {
+      "target": [
+        "files_file",
+        "files_folder"
       ]
     }
-  },
-  "task_location": "workspace_tasks",
-  "icon": "https://i.imgur.com/MxlNwDM.png",
-  "icon_cover": false,
-  "icon_background": "#FFFFFF",
-  "headless": true,
-  "context_menu": {
-    "target": [
-      "files_file",
-      "files_folder"
-    ]
   }
-}
