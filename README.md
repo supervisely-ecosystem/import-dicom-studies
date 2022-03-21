@@ -1,5 +1,5 @@
 <div align="center" markdown>
-<img src="https://i.imgur.com/HQW7m9F.png"/>
+<img src="https://i.imgur.com/o8bm60f.png"/>
 
 # Import DICOM Studies
 
@@ -85,25 +85,24 @@ IMG-0001-00003.nrrd  | `AcquisitionDate`: `20200928`
 IMG-0001-00004.nrrd    | `AcquisitionDate`: `20200928`
 1.2.3.4.5.6.10.10.100.110.10000.00000000000000.0000.nrrd  |
 
-[**Download example data**](https://github.com/supervisely-ecosystem/import-images-groups/releases/download/v0.0.1/cars_catalog.zip)
 
 Prepare project and drag and drop it to `Team Files`.
 
 <img src="https://github.com/supervisely-ecosystem/import-images-groups/releases/download/v0.0.2/drag-n-drop.gif?raw=true"/>
 
 # How To Run 
-**Step 1.** Add [Import Images Groups](https://ecosystem.supervise.ly/apps/import-images-groups) app to your team from Ecosystem
+**Step 1.** Add [Import DICOM studies](https://ecosystem.supervise.ly/apps/import-dicom-studies) app to your team from Ecosystem
 
-<img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/import-images-groups" src="https://i.imgur.com/wAiE0ld.png" width="70%"/>
+<img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/import-dicom-studies" src="https://i.imgur.com/hEeXmrM.png" width="70%"/>
 
 
 **Step 2.** Run app from the context menu of your data on Team Files page:
-<img src="https://i.imgur.com/Y0dTDzC.png"/>
+<img src="https://i.imgur.com/OQh3oa3.png"/>
 
 
-**Step 3.** Define group tag name in modal window.
+**Step 3.** Define group tag in modal window by selecting one of the prepared DICOM metadata fields, or type metadata field name manually.
 
-<img src="https://i.imgur.com/oMCsnvK.png" width="70%"/>
+<img src="https://i.imgur.com/jLbh2ot.png" width="70%"/>
 
 
 **Step 4.** Once app is started, new task will appear in workspace tasks. Wait for the app to process your data.
@@ -112,28 +111,8 @@ Prepare project and drag and drop it to `Team Files`.
 
 **Step 1.** Open imported project.
 
-<img src="https://i.imgur.com/DAIOzN0.png"/>
+<img src="https://i.imgur.com/Z8ulu5y.png"/>
 
 **Step 2.** Open dataset using new image annotator.
 
-<img src="https://i.imgur.com/sSCtInH.png"/>
-
-# Additional Settings
-
-**1.** To display single images switch off `Images Grouping` setting.
-
-<img src="https://github.com/supervisely-ecosystem/import-images-groups/releases/download/v0.0.2/enabled-disabled.gif?raw=true"/>
-
-**2.** If you want to disable images groupping for the whole project, go to `Project`->`Settings`->`Visuals` uncheck
-
-<img src="https://i.imgur.com/qOGICD3.png"/>
-
-**3.** Windowing tool is available when working with `.nrrd` files. It helps to filter pixels to see bones, air, liquids and etc
-
-<img src="https://i.imgur.com/gW37Tyn.png"/>
-
-
-# Demo Video
-<a data-key="sly-embeded-video-link" href="https://www.youtube.com/watch?v=4JOjK2HlLXo" data-video-code="4JOjK2HlLXo">
-    <img src="https://i.imgur.com/mb4CPK1.png" alt="SLY_EMBEDED_VIDEO_LINK"  width="70%">
-</a>
+<img src="https://i.imgur.com/kO8f0bL.png"/>
