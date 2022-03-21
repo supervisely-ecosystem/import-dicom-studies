@@ -181,15 +181,28 @@ def dcm2nrrd(image_path, group_tag_name):
     # image_meta = None
     # if g.UPLOAD_META:
     #     image_meta = get_meta_from_dcm(dcm)
-
-    group_tag = {"name": group_tag_name, "value": dcm[group_tag_name].value}
-    pixel_data = dcm.pixel_array
-    pixel_data = sly.image.rotate(img=pixel_data, degrees_angle=270)
-
+    # PositionerType
     image_name = get_dcm_image_name(image_path)
-    save_path = os.path.join(os.path.dirname(image_path), image_name)
-    nrrd.write(save_path, pixel_data)
 
-    ann = create_ann_with_tags(save_path, group_tag, dcm_tags)
+    try:
+        group_tag_value = dcm[group_tag_name].value
+        group_tag = {"name": group_tag_name, "value": group_tag_value}
+        pixel_data = dcm.pixel_array
+        pixel_data = sly.image.rotate(img=pixel_data, degrees_angle=270)
+
+        image_name = get_dcm_image_name(image_path)
+        save_path = os.path.join(os.path.dirname(image_path), image_name)
+        nrrd.write(save_path, pixel_data)
+        ann = create_ann_with_tags(save_path, group_tag, dcm_tags)
+
+    except:
+        g.my_app.logger.warn(f"{group_tag_name} not found in {image_name}")
+        pixel_data = dcm.pixel_array
+        pixel_data = sly.image.rotate(img=pixel_data, degrees_angle=270)
+        image_name = get_dcm_image_name(image_path)
+        save_path = os.path.join(os.path.dirname(image_path), image_name)
+        nrrd.write(save_path, pixel_data)
+        ann = sly.Annotation.from_img_path(save_path)
+
     return save_path, image_name, ann
     # return save_path, image_name, image_meta, ann
