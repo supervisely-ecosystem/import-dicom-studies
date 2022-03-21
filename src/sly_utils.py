@@ -189,7 +189,6 @@ def dcm2nrrd(image_path, group_tag_name):
         group_tag = {"name": group_tag_name, "value": group_tag_value}
         pixel_data = dcm.pixel_array
         pixel_data = sly.image.rotate(img=pixel_data, degrees_angle=270)
-
         image_name = get_dcm_image_name(image_path)
         save_path = os.path.join(os.path.dirname(image_path), image_name)
         nrrd.write(save_path, pixel_data)
