@@ -24,18 +24,18 @@
         </el-tab-pane>
     </el-tabs>
 
-    <pre>
-        {{ JSON.stringify(state, undefined, 2) }}
-    </pre>
+<!--    <pre>-->
+<!--        {{ JSON.stringify(state, undefined, 2) }}-->
+<!--    </pre>-->
 
-    <sly-card title="" class="mt10">
-        <el-checkbox v-model="state.addTagsFromDcm">Add tags from dicom metadata</el-checkbox>
-        <div v-if="state.addTagsFromDcm">
-            <sly-copy-to-clipboard>
-                <sly-editor v-model="state.dcmTags"
-                            :options="{mode: 'ace/mode/json', showGutter: false, readOnly: false, maxLines: 100, highlightActiveLine: true}">
-                </sly-editor>
-            </sly-copy-to-clipboard>
-        </div>
-    </sly-card>
+<!--    <sly-card title="" class="mt10">-->
+<!--        <el-checkbox v-model="state.addTagsFromDcm">Add tags from dicom metadata</el-checkbox>-->
+<!--        <div v-if="state.addTagsFromDcm">-->
+<!--            <sly-copy-to-clipboard>-->
+<!--                <sly-editor v-model="state.dcmTags"-->
+<!--                            :options="{mode: 'ace/mode/json', showGutter: false, readOnly: false, maxLines: 100, highlightActiveLine: true}">-->
+<!--                </sly-editor>-->
+<!--            </sly-copy-to-clipboard>-->
+<!--        </div>-->
+<!--    </sly-card>-->
 </sly-field>
