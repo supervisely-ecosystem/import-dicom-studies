@@ -14,7 +14,9 @@ TAG_MODE: str = os.environ["modal.state.tagMode"]
 
 UPLOAD_META: bool = bool(os.environ["modal.state.uploadMeta"])
 ADD_DCM_TAGS: bool = bool(os.environ["modal.state.addTagsFromDcm"])
-DCM_TAGS: list = json.loads(os.environ["modal.state.dcmTags"])["tags"]
+DCM_TAGS = os.environ["modal.state.dcmTags"]
+if DCM_TAGS is not None:
+    DCM_TAGS = json.loads(os.environ["modal.state.dcmTags"])["tags"]
 
 PREPARED_GROUP_TAG_NAME: str = os.environ.get("modal.state.preparedGroupTag")
 MANUAL_GROUP_TAG_NAME: str = os.environ.get("modal.state.manualGroupTag")
