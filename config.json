@@ -12,7 +12,8 @@
   "modal_template_state": {
     "tagMode": "prepared",
     "preparedGroupTag": "StudyInstanceUID",
-    "manualGroupTag": null
+    "manualGroupTag": null,
+    "state.dcmTags": "{ \"tags\": [\"Manufacturer\", \"ManufacturerModelName\", \"Modality\"] }"
   },
   "task_location": "workspace_tasks",
   "icon": "https://i.imgur.com/lAEupML.png",

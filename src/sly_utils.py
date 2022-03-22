@@ -130,30 +130,30 @@ def create_group_tag(group_tag_info):
     return group_tag
 
 
-# def create_dcm_tags(dcm):
-#     dcm_tags = []
-#     for dcm_tag in g.DCM_TAGS:
-#         dcm_tag_name = dcm[dcm_tag].name
-#         dcm_tag_value = dcm[dcm_tag].value
-#         if dcm_tag_value is None:
-#             continue
-#         dcm_tag_meta = g.project_meta.get_tag_meta(dcm_tag_name)
-#         if dcm_tag_meta is not None:
-#             dcm_tag = sly.Tag(dcm_tag_meta, dcm_tag_value)
-#         else:
-#             dcm_tag_meta = sly.TagMeta(dcm_tag_name, sly.TagValueType.ANY_STRING)
-#             g.project_meta = g.project_meta.add_tag_meta(dcm_tag_meta)
-#             g.api.project.update_meta(id=g.project_id, meta=g.project_meta.to_json())
-#             dcm_tag = sly.Tag(dcm_tag_meta, dcm_tag_value)
-#         dcm_tags.append(dcm_tag)
-#     return dcm_tags
+def create_dcm_tags(dcm):
+    dcm_tags = []
+    for dcm_tag in g.DCM_TAGS:
+        dcm_tag_name = dcm[dcm_tag].name
+        dcm_tag_value = dcm[dcm_tag].value
+        if dcm_tag_value is None:
+            continue
+        dcm_tag_meta = g.project_meta.get_tag_meta(dcm_tag_name)
+        if dcm_tag_meta is not None:
+            dcm_tag = sly.Tag(dcm_tag_meta, dcm_tag_value)
+        else:
+            dcm_tag_meta = sly.TagMeta(dcm_tag_name, sly.TagValueType.ANY_STRING)
+            g.project_meta = g.project_meta.add_tag_meta(dcm_tag_meta)
+            g.api.project.update_meta(id=g.project_id, meta=g.project_meta.to_json())
+            dcm_tag = sly.Tag(dcm_tag_meta, dcm_tag_value)
+        dcm_tags.append(dcm_tag)
+    return dcm_tags
 
 
 def create_ann_with_tags(path_to_img: str, group_tag_info: dict, dcm_tags: List[sly.Tag] = None):
     group_tag = create_group_tag(group_tag_info)
     tags_to_add = [group_tag]
-    # if dcm_tags is not None:
-    #     tags_to_add += dcm_tags
+    if dcm_tags is not None:
+        tags_to_add += dcm_tags
     ann = sly.Annotation.from_img_path(path_to_img)
     tags_with_values = []
     for tag in tags_to_add:
@@ -175,8 +175,8 @@ def get_meta_from_dcm(dcm):
 def dcm2nrrd(image_path, group_tag_name):
     dcm = pydicom.read_file(image_path)
     dcm_tags = None
-    # if g.ADD_DCM_TAGS:
-    #     dcm_tags = create_dcm_tags(dcm)
+    if g.ADD_DCM_TAGS:
+        dcm_tags = create_dcm_tags(dcm)
 
     # image_meta = None
     # if g.UPLOAD_META:
