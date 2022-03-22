@@ -12,13 +12,14 @@ WORKSPACE_ID: int = int(os.environ['context.workspaceId'])
 
 TAG_MODE: str = os.environ["modal.state.tagMode"]
 
-# UPLOAD_META: bool = bool(os.environ["modal.state.uploadMeta"])
-# ADD_DCM_TAGS: bool = bool(os.environ["modal.state.addTagsFromDcm"])
-# DCM_TAGS = os.environ["modal.state.dcmTags"]
-# if DCM_TAGS is not None:
-#     DCM_TAGS = json.loads(os.environ["modal.state.dcmTags"])["tags"]
+ADD_DCM_TAGS: bool = bool(os.environ["modal.state.addTagsFromDcm"])
+DCM_TAGS = os.environ["modal.state.dcmTags"].replace('\\', "")
+if ADD_DCM_TAGS and DCM_TAGS is not None:
+    DCM_TAGS = json.loads(DCM_TAGS)
+    DCM_TAGS = DCM_TAGS["tags"]
 
-PREPARED_GROUP_TAG_NAME: str = os.environ.get("modal.state.preparedGroupTag")
+
+PREPARED_GROUP_TAG_NAME: str = os.environ.get("modal.state.predefinedGroupTag")
 MANUAL_GROUP_TAG_NAME: str = os.environ.get("modal.state.manualGroupTag")
 
 GROUP_TAG_NAME = None

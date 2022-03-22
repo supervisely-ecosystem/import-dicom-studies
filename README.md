@@ -31,6 +31,9 @@ Application key points:
 * Images will be grouped by selected tag's value
 * Supports `DICOM` files without extention e.g. `1.2.3.4.5.6.10.10.100.110.10000.00000000000000.0000`
 * Converts `DICOM` to `nrrd` format
+* Exported with [Export to Supervisely format](https://ecosystem.supervise.ly/apps/export-to-supervisely-format)
+
+Learn more how to deal with images groups in [Import images groups](https://ecosystem.supervise.ly/apps/import-images-groups) readme 
 
 # Preparation
 
@@ -71,7 +74,7 @@ Structure explained:
 2. Inside project directory must be dataset directory. Name of the dataset directory will be used for created dataset. 
 3. Files will be grouped using `DICOM` metadata. If `DICOM` file doesn't contain inputted metadata field, it will be uploaded without tag.
 
-Example of created project using the example below and tag `car id` as user input:
+Example of created project using the example below and tag `AcquisitionDate` as user input:
 * Project name: cardio
 * Dataset name: research_1
 * Images:
@@ -87,7 +90,7 @@ IMG-0001-00004.nrrd    | `AcquisitionDate`: `20200928`
 
 Prepare project and drag and drop it to `Team Files`.
 
-<img src="https://github.com/supervisely-ecosystem/import-dicom-studies/releases/download/v0.0.1/drag-and-drop.gif?raw=true"/>
+<img src="https://github.com/supervisely-ecosystem/import-dicom-studies/releases/download/v0.0.1/drag-and-drop-min.gif"/>
 
 # How To Run 
 **Step 1.** Add [Import DICOM studies](https://ecosystem.supervise.ly/apps/import-dicom-studies) app to your team from Ecosystem
