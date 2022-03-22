@@ -168,10 +168,9 @@ def dcm2nrrd(image_path, group_tag_name):
     if g.ADD_DCM_TAGS:
         dcm_tags = create_dcm_tags(dcm)
 
-    # image_meta = None
-    # if g.UPLOAD_META:
-    #     image_meta = get_meta_from_dcm(dcm)
-    # PositionerType
+    image_meta = None
+    if g.UPLOAD_META:
+        image_meta = get_meta_from_dcm(dcm)
 
     pixel_data = dcm.pixel_array
     pixel_data = sly.image.rotate(img=pixel_data, degrees_angle=270)
@@ -190,5 +189,5 @@ def dcm2nrrd(image_path, group_tag_name):
         if g.ADD_DCM_TAGS:
             ann = ann.add_tags(sly.TagCollection(dcm_tags))
 
-    return save_path, image_name, ann
-    # return save_path, image_name, image_meta, ann
+    # return save_path, image_name, ann
+    return save_path, image_name, image_meta, ann
