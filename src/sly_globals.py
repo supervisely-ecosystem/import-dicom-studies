@@ -38,15 +38,15 @@ mkdir(STORAGE_DIR, True)
 project_id: int = None
 project_meta: sly.ProjectMeta = sly.ProjectMeta()
 
-{
-	"tags": [
-		"Manufacturer",
-		"ManufacturerModelName",
-		"Modality",
-		"DetectorConfiguration",
-		"Exposure",
-		"OrganDose",
-		"PositionerPrimaryAngle",
-		"SeriesTime"
-	]
-}
+# {
+# 	"tags": [
+# 		"Manufacturer",
+# 		"ManufacturerModelName",
+# 		"Modality",
+# 		"DetectorConfiguration",
+# 		"Exposure",
+# 		"OrganDose",
+# 		"PositionerPrimaryAngle",
+# 		"SeriesTime"
+# 	]
+# }
