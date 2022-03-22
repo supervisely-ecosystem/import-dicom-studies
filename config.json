@@ -13,7 +13,7 @@
     "tagMode": "prepared",
     "preparedGroupTag": "StudyInstanceUID",
     "manualGroupTag": null,
-    "dcmTags": "{ \"tags\": [\"Manufacturer\", \"ManufacturerModelName\", \"Modality\"] }"
+    "dcmTags": "{\n\t\"tags\": [\n\t\t\"Manufacturer\",\n\t\t\"ManufacturerModelName\",\n\t\t\"Modality\"\n\t]\n}"
   },
   "task_location": "workspace_tasks",
   "icon": "https://i.imgur.com/lAEupML.png",
