@@ -136,7 +136,7 @@ def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
     dcm_tags = []
     for dcm_tag in g.DCM_TAGS:
         dcm_tag_name = dcm[dcm_tag].name
-        dcm_tag_value = dcm[dcm_tag].value
+        dcm_tag_value = str(dcm[dcm_tag].value)
         if dcm_tag_value is None:
             continue
         dcm_tag_meta = g.project_meta.get_tag_meta(dcm_tag_name)
@@ -183,7 +183,7 @@ def dcm2nrrd(image_path: str, group_tag_name: str) -> Tuple[str, str, sly.Annota
     nrrd.write(save_path, pixel_data)
 
     try:
-        group_tag_value = dcm[group_tag_name].value
+        group_tag_value = str(dcm[group_tag_name].value)
         group_tag = {"name": group_tag_name, "value": group_tag_value}
         ann = create_ann_with_tags(save_path, group_tag, dcm_tags)
     except:
