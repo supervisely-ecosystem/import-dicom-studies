@@ -4,16 +4,12 @@ import os
 import json
 import shutil
 from functools import partial
-from typing import Callable, List, Tuple, Sequence
+from typing import Callable, List
 import pydicom
-from pydicom.multival import MultiValue
-from pydicom.charset import PersonName
 from pathlib import Path
 
 import supervisely as sly
-from supervisely.io.fs import (dir_exists, file_exists, get_file_ext,
-                               get_file_name, get_file_name_with_ext,
-                               silent_remove)
+from supervisely.io.fs import get_file_ext, get_file_name, get_file_name_with_ext, silent_remove
 
 import sly_globals as g
 
@@ -51,6 +47,7 @@ def is_dicom_file(path, verbose=False):
     except Exception as ex:
         if verbose:
             print("'{}' appears not to be a DICOM file\n({})".format(path, ex))
+            g.my_app.logger.warn("'{}' appears not to be a DICOM file\n({})".format(path, ex))
         result = False
     return result
 
@@ -106,13 +103,6 @@ def get_dcm_image_name(image_path):
     else:
         image_name = get_file_name(image_path) + ".nrrd"
     return image_name
-
-
-# def create_meta_with_tags():
-#     study_iuid_meta = sly.TagMeta("StudyInstanceUID", sly.TagValueType.ANY_STRING)
-#     series_iuid_meta = sly.TagMeta("SeriesInstanceUID", sly.TagValueType.ANY_STRING)
-#     project_meta = sly.ProjectMeta(tag_metas=sly.TagMetaCollection([study_iuid_meta, series_iuid_meta]))
-#     return project_meta, study_iuid_meta, series_iuid_meta
 
 
 def create_group_tag(group_tag_info):
