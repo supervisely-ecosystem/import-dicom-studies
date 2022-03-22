@@ -135,8 +135,11 @@ def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
     """Create tags from DICOM metadata."""
     dcm_tags = []
     for dcm_tag in g.DCM_TAGS:
-        dcm_tag_name = dcm[dcm_tag].name
-        dcm_tag_value = str(dcm[dcm_tag].value)
+        try:
+            dcm_tag_name = str(dcm[dcm_tag].name)
+            dcm_tag_value = str(dcm[dcm_tag].value)
+        except:
+            continue
         if dcm_tag_value is None:
             continue
         dcm_tag_meta = g.project_meta.get_tag_meta(dcm_tag_name)
