@@ -32,7 +32,7 @@ Application key points:
 * Images will be grouped by selected tag's value
 * Supports `DICOM` files without extention e.g. `1.2.3.4.5.6.10.10.100.110.10000.00000000000000.0000`
 * Converts `DICOM` to `nrrd` format
-* Exported with [Export to Supervisely format](https://ecosystem.supervise.ly/apps/export-to-supervisely-format)
+* Result project can be exported only with [Export to Supervisely format](https://ecosystem.supervise.ly/apps/export-to-supervisely-format) app
 
 Learn more how to deal with images groups in [Import images groups](https://ecosystem.supervise.ly/apps/import-images-groups) readme 
 
