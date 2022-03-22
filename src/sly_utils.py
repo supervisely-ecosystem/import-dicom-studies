@@ -139,8 +139,8 @@ def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
             dcm_tag_name = str(dcm[dcm_tag].name)
             dcm_tag_value = str(dcm[dcm_tag].value)
         except:
-            dcm_filename = get_file_name(dcm.filename)
-            g.my_app.logger.warn(f"Couldn't find key: '{dcm_tag}' in file: '{dcm_filename}'")
+            dcm_filename = get_file_name_with_ext(dcm.filename)
+            g.my_app.logger.warn(f"Couldn't find key: '{dcm_tag}' in file's metadata: '{dcm_filename}'")
             continue
         if dcm_tag_value is None:
             continue
@@ -182,7 +182,7 @@ def dcm2nrrd(image_path: str, group_tag_name: str) -> Tuple[str, str, sly.Annota
 
     pixel_data = dcm.pixel_array
     pixel_data = sly.image.rotate(img=pixel_data, degrees_angle=270)
-    original_name = get_file_name(image_path)
+    original_name = get_file_name_with_ext(image_path)
     image_name = get_dcm_image_name(image_path)
     save_path = os.path.join(os.path.dirname(image_path), image_name)
     nrrd.write(save_path, pixel_data)
@@ -193,7 +193,7 @@ def dcm2nrrd(image_path: str, group_tag_name: str) -> Tuple[str, str, sly.Annota
         ann = create_ann_with_tags(save_path, group_tag, dcm_tags)
     except:
         g.my_app.logger.warn(
-            f"Couldn't find key: '{group_tag_name}' in file: '{original_name}'")
+            f"Couldn't find key: '{group_tag_name}' in file's metadata: '{original_name}'")
         ann = sly.Annotation.from_img_path(save_path)
         if g.ADD_DCM_TAGS:
             ann = ann.add_tags(sly.TagCollection(dcm_tags))
