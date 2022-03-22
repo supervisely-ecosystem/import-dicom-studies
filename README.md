@@ -24,9 +24,10 @@ Converts `DICOM` data to `nrrd` format and creates a new project with tagged ima
 
 Application key points:
 * Select grouping tag from prepared tags or manually input tag name
-* Tag name must match DICOM metadata field name
+* Tag name must match DICOM metadata key name
 * Tag value is defined by metadata from `DICOM` file
-* Manually inputted tag must match name of the `DICOM` metadata field e.g `AcquisitionDate`
+* Manually inputted tag must match name of the `DICOM` metadata key e.g `AcquisitionDate`
+* Add multiple DICOM metadata keys as tags using modal window
 * `Images Grouping` option will be turned on by default in the created project
 * Images will be grouped by selected tag's value
 * Supports `DICOM` files without extention e.g. `1.2.3.4.5.6.10.10.100.110.10000.00000000000000.0000`
@@ -102,9 +103,9 @@ Prepare project and drag and drop it to `Team Files`.
 <img src="https://i.imgur.com/OQh3oa3.png"/>
 
 
-**Step 3.** Define group tag in modal window by selecting one of the prepared DICOM metadata fields, or type metadata field name manually.
+**Step 3.** Define group tag in modal window by selecting one of the predefined DICOM metadata keys, or type metadata key name manually. You can add more metadata keys as tags by adding them to editor in modal window.
 
-<img src="https://i.imgur.com/jLbh2ot.png" width="70%"/>
+<img src="https://i.imgur.com/aps3VmR.png" width="70%"/>
 
 
 **Step 4.** Once app is started, new task will appear in workspace tasks. Wait for the app to process your data.
