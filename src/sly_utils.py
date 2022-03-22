@@ -139,6 +139,8 @@ def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
             dcm_tag_name = str(dcm[dcm_tag].name)
             dcm_tag_value = str(dcm[dcm_tag].value)
         except:
+            dcm_filename = get_file_name(dcm.filename)
+            g.my_app.logger(f"Couldn't find key: {dcm_tag} in file: {dcm_filename}")
             continue
         if dcm_tag_value is None:
             continue
