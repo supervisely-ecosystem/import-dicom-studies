@@ -11,13 +11,14 @@ TEAM_ID: int = int(os.environ['context.teamId'])
 WORKSPACE_ID: int = int(os.environ['context.workspaceId'])
 
 TAG_MODE: str = os.environ["modal.state.tagMode"]
+ADD_DCM_TAGS: bool = os.getenv("modal.state.addTagsFromDcm", 'False').lower() in ('true', '1', 't')
 
-ADD_DCM_TAGS: bool = bool(os.environ["modal.state.addTagsFromDcm"])
-DCM_TAGS = os.environ["modal.state.dcmTags"].replace('\\', "")
-if ADD_DCM_TAGS and DCM_TAGS is not None:
-    DCM_TAGS = json.loads(DCM_TAGS)
-    DCM_TAGS = DCM_TAGS["tags"]
-
+DCM_TAGS: list = []
+if ADD_DCM_TAGS:
+    try:
+        DCM_TAGS: list = json.loads(os.environ["modal.state.dcmTags"].replace('\\', ""))["tags"]
+    except:
+        my_app.logger.warn("Invalid JSON")
 
 PREPARED_GROUP_TAG_NAME: str = os.environ.get("modal.state.predefinedGroupTag")
 MANUAL_GROUP_TAG_NAME: str = os.environ.get("modal.state.manualGroupTag")
@@ -27,7 +28,6 @@ if TAG_MODE == "prepared":
     GROUP_TAG_NAME = PREPARED_GROUP_TAG_NAME
 else:
     GROUP_TAG_NAME = MANUAL_GROUP_TAG_NAME
-
 
 INPUT_DIR: str = os.environ.get("modal.state.slyFolder")
 INPUT_FILE: str = os.environ.get("modal.state.slyFile")
