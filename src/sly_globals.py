@@ -18,7 +18,7 @@ if ADD_DCM_TAGS:
     try:
         DCM_TAGS: list = json.loads(os.environ["modal.state.dcmTags"].replace('\\', ""))["tags"]
     except:
-        my_app.logger.warn("Invalid JSON")
+        my_app.logger.warn("Invalid JSON input in modal window editor")
 
 PREPARED_GROUP_TAG_NAME: str = os.environ.get("modal.state.predefinedGroupTag")
 MANUAL_GROUP_TAG_NAME: str = os.environ.get("modal.state.manualGroupTag")
