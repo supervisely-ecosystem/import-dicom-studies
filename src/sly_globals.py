@@ -12,7 +12,7 @@ WORKSPACE_ID: int = int(os.environ['context.workspaceId'])
 
 TAG_MODE: str = os.environ["modal.state.tagMode"]
 
-UPLOAD_META: bool = bool(os.environ["modal.state.uploadMeta"])
+# UPLOAD_META: bool = bool(os.environ["modal.state.uploadMeta"])
 UPLOAD_META = True
 ADD_DCM_TAGS: bool = bool(os.environ["modal.state.addTagsFromDcm"])
 DCM_TAGS = os.environ["modal.state.dcmTags"].replace('\\', "")
