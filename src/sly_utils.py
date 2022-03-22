@@ -202,6 +202,8 @@ def dcm2nrrd(image_path, group_tag_name):
         save_path = os.path.join(os.path.dirname(image_path), image_name)
         nrrd.write(save_path, pixel_data)
         ann = sly.Annotation.from_img_path(save_path)
+        if g.ADD_DCM_TAGS:
+            ann = ann.add_tags(sly.TagCollection[dcm_tags])
 
     return save_path, image_name, ann
     # return save_path, image_name, image_meta, ann
