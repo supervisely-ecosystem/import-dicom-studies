@@ -5,14 +5,16 @@
     "Import"
   ],
   "description": "Convert DICOM data to nrrd format and creates a new project with images grouped by selected metadata",
-  "docker_image": "supervisely/base-py-sdk:6.8.3",
+  "docker_image": "supervisely/base-py-sdk:6.8.4",
   "instance_version": "6.4.39",
   "main_script": "src/main.py",
   "modal_template": "src/modal.html",
   "modal_template_state": {
     "tagMode": "prepared",
-    "preparedGroupTag": "StudyInstanceUID",
+    "predefinedGroupTag": "StudyInstanceUID",
     "manualGroupTag": null,
+    "uploadMeta": false,
+    "addTagsFromDcm": false,
     "dcmTags": "{\n\t\"tags\": [\n\t\t\"Manufacturer\",\n\t\t\"ManufacturerModelName\",\n\t\t\"Modality\"\n\t]\n}"
   },
   "task_location": "workspace_tasks",
