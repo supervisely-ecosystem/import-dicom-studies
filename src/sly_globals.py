@@ -11,13 +11,9 @@ TEAM_ID: int = int(os.environ['context.teamId'])
 WORKSPACE_ID: int = int(os.environ['context.workspaceId'])
 
 TAG_MODE: str = os.environ["modal.state.tagMode"]
-
-ADD_DCM_TAGS: bool = bool(os.environ["modal.state.addTagsFromDcm"])
-
+ADD_DCM_TAGS: bool = os.getenv("modal.state.addTagsFromDcm", 'False').lower() in ('true', '1', 't')
 if ADD_DCM_TAGS:
-    DCM_TAGS = os.environ["modal.state.dcmTags"].replace('\\', "")
-    DCM_TAGS = json.loads(DCM_TAGS)
-    DCM_TAGS = DCM_TAGS["tags"]
+    DCM_TAGS = json.loads(os.environ["modal.state.dcmTags"].replace('\\', ""))["tags"]
 else:
     DCM_TAGS = []
 
