@@ -140,7 +140,7 @@ def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
             dcm_tag_value = str(dcm[dcm_tag].value)
         except:
             dcm_filename = get_file_name(dcm.filename)
-            g.my_app.logger.warn(f"Couldn't find key: {dcm_tag} in file: {dcm_filename}")
+            g.my_app.logger.warn(f"Couldn't find key: '{dcm_tag}' in file: '{dcm_filename}'")
             continue
         if dcm_tag_value is None:
             continue
@@ -193,7 +193,7 @@ def dcm2nrrd(image_path: str, group_tag_name: str) -> Tuple[str, str, sly.Annota
         ann = create_ann_with_tags(save_path, group_tag, dcm_tags)
     except:
         g.my_app.logger.warn(
-            f"{group_tag_name} not found in {original_name} metadata")
+            f"Couldn't find key: '{group_tag_name}' in file: '{original_name}'")
         ann = sly.Annotation.from_img_path(save_path)
         if g.ADD_DCM_TAGS:
             ann = ann.add_tags(sly.TagCollection(dcm_tags))
