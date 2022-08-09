@@ -1,5 +1,5 @@
 <div align="center" markdown>
-<img src="https://i.imgur.com/o8bm60f.png"/>
+<img src="https://user-images.githubusercontent.com/48245050/182844433-c620c1fc-76f4-4480-8461-984b8b713058.jpg"/>
 
 # Import DICOM Studies
 
