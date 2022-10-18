@@ -1,8 +1,20 @@
 import os
+import sys
 import json
 import supervisely as sly
 from supervisely.app.v1.app_service import AppService
 from supervisely.io.fs import mkdir
+
+app_root_directory = os.path.dirname(os.getcwd())
+sys.path.append(app_root_directory)
+sys.path.append(os.path.join(app_root_directory, "src"))
+print(f"App root directory: {app_root_directory}")
+sly.logger.info(f'PYTHONPATH={os.environ.get("PYTHONPATH", "")}')
+
+# order matters
+from dotenv import load_dotenv
+load_dotenv(os.path.join(app_root_directory, "secret_debug.env"))
+load_dotenv(os.path.join(app_root_directory, "debug.env"))
 
 my_app: AppService = AppService()
 api: sly.Api = my_app.public_api
