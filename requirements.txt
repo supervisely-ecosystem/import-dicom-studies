@@ -1,6 +1,6 @@
 supervisely==6.35.0
 supervisely[apps]==6.35.0
-pydicom==2.2.2
+pydicom==2.3.0
 pynrrd==0.4.2
 
 # for dcm without extention
