@@ -7,8 +7,9 @@
     "dicom"
   ],
   "description": "Convert DICOM data to nrrd format and creates a new project with images grouped by selected metadata",
-  "docker_image": "supervisely/base-py-sdk:6.35.0",
-  "instance_version": "6.4.39",
+  "docker_image": "supervisely/base-py-sdk:6.68.6",
+  "min_agent_version": "6.7.4",
+  "min_instance_version": "6.5.46",
   "main_script": "src/main.py",
   "modal_template": "src/modal.html",
   "modal_template_state": {
@@ -27,7 +28,9 @@
   "context_menu": {
     "target": [
       "files_file",
-      "files_folder"
+      "files_folder",
+      "agent_file",
+      "agent_folder"
     ]
   },
   "poster": "https://user-images.githubusercontent.com/48245050/182844433-c620c1fc-76f4-4480-8461-984b8b713058.jpg"

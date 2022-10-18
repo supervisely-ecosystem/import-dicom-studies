@@ -164,7 +164,8 @@ def create_ann_with_tags(path_to_img: str, group_tag_info: dict, dcm_tags: List[
     tags_to_add = [group_tag]
     if dcm_tags is not None:
         tags_to_add += dcm_tags
-    ann = sly.Annotation.from_img_path(path_to_img)
+    img_size = nrrd.read_header(path_to_img)["sizes"].tolist()[::-1]
+    ann = sly.Annotation(img_size=img_size)
     tags_with_values = []
     for tag in tags_to_add:
         if tag.value is not None:
@@ -194,7 +195,8 @@ def dcm2nrrd(image_path: str, group_tag_name: str) -> Tuple[str, str, sly.Annota
     except:
         g.my_app.logger.warn(
             f"Couldn't find key: '{group_tag_name}' in file's metadata: '{original_name}'")
-        ann = sly.Annotation.from_img_path(save_path)
+        img_size = nrrd.read_header(save_path)["sizes"].tolist()[::-1]
+        ann = sly.Annotation(img_size=img_size)
         if g.ADD_DCM_TAGS:
             ann = ann.add_tags(sly.TagCollection(dcm_tags))
 
