@@ -26,6 +26,7 @@
   "icon_background": "#FFFFFF",
   "headless": true,
   "context_menu": {
+    "context_category": "Import",
     "target": [
       "files_file",
       "files_folder",
