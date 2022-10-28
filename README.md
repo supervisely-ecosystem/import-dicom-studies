@@ -37,8 +37,8 @@ Learn more how to deal with images groups in [Import images groups](https://ecos
 
 🏋️ Starting from version `v1.1.0` application supports import from special directory on your local computer. It is made for Enterprise Edition customers who need to upload tens or even hundreds of gigabytes of data without using drag-ang-drop mechanism:
 
-1. Run agent on your computer where data is stored.
-2. Copy your data to special folder on your computer that was created by agent. Agent mounts this directory to your Supervisely instance and it becomes accessible in Team Files. Learn more [in documentation](https://github.com/supervisely/docs/blob/master/customization/agents/agent-storage/agent-storage.md).
+1. Run agent on your computer where data is stored. Watch [how-to video](https://youtu.be/aO7Zc4kTrVg).
+2. Copy your data to special folder on your computer that was created by agent. Agent mounts this directory to your Supervisely instance and it becomes accessible in Team Files. Learn more [in documentation](https://github.com/supervisely/docs/blob/master/customization/agents/agent-storage/agent-storage.md). Watch [how-to video](https://youtu.be/63Kc8Xq9H0U).
 3. Go to `Team Files` -> `Supervisely Agent` and find your folder there.
 4. Right click to open context menu and start app. Now app will upload data directly from your computer to the platform.
 
