@@ -1,5 +1,10 @@
 {
-  "name": "Import dicom studies",
+  "release": {
+    "version": "v1.0.0",
+    "name": "test"
+  },
+  "slug": "niko/test-import-dicom-studies",
+  "name": "[test] Import dicom studies",
   "type": "app",
   "categories": [
     "import",
