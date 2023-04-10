@@ -49,11 +49,18 @@ def is_dicom_file(path: str, verbose: bool = False) -> bool:
     except Exception as ex:
         if verbose:
             print("'{}' appears not to be a DICOM file\n({})".format(path, ex))
-            g.my_app.logger.warn(
-                "'{}' appears not to be a DICOM file\n({})".format(path, ex)
-            )
+            g.my_app.logger.warn("'{}' appears not to be a DICOM file\n({})".format(path, ex))
         result = False
     return result
+
+
+def is_json_file(file_path):
+    try:
+        with open(file_path, "r") as f:
+            json.load(f)
+            return True
+    except (ValueError, FileNotFoundError):
+        return False
 
 
 def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) -> str:
@@ -61,9 +68,7 @@ def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) ->
     project_path = None
     if g.INPUT_DIR is not None:
         remote_path = g.INPUT_DIR
-        project_path = os.path.join(
-            save_path, os.path.basename(os.path.normpath(remote_path))
-        )
+        project_path = os.path.join(save_path, os.path.basename(os.path.normpath(remote_path)))
         sizeb = api.file.get_directory_size(g.TEAM_ID, remote_path)
         progress_cb = get_progress_cb(
             api=api,
@@ -99,9 +104,7 @@ def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) ->
         shutil.unpack_archive(save_archive_path, save_path)
         silent_remove(save_archive_path)
         if len(os.listdir(save_path)) > 1:
-            g.my_app.logger.error(
-                "There must be only 1 project directory in the archive"
-            )
+            g.my_app.logger.error("There must be only 1 project directory in the archive")
             raise Exception("There must be only 1 project directory in the archive")
 
         project_name = os.listdir(save_path)[0]
@@ -120,9 +123,7 @@ def create_group_tag(group_tag_info: Dict[str, str]) -> sly.Tag:
         group_tag_meta = sly.TagMeta(group_tag_name, sly.TagValueType.ANY_STRING)
         g.project_meta = g.project_meta.add_tag_meta(group_tag_meta)
         g.api.project.update_meta(id=g.project_id, meta=g.project_meta.to_json())
-        g.api.project.images_grouping(
-            id=g.project_id, enable=True, tag_name=g.GROUP_TAG_NAME
-        )
+        g.api.project.images_grouping(id=g.project_id, enable=True, tag_name=g.GROUP_TAG_NAME)
         group_tag = sly.Tag(group_tag_meta, group_tag_value)
     return group_tag
 
@@ -200,3 +201,17 @@ def dcm2nrrd(image_path: str, group_tag_name: str) -> Tuple[str, str, sly.Annota
             ann = ann.add_tags(sly.TagCollection(dcm_tags))
 
     return save_path, image_name, ann
+
+
+def get_progress_cb(
+    api: sly.Api,
+    task_id: int,
+    message: str,
+    total: int,
+    is_size: bool = False,
+    func: Callable = update_progress,
+) -> functools.partial:
+    progress = sly.Progress(message, total, is_size=is_size)
+    progress_cb = functools.partial(func, api=api, task_id=task_id, progress=progress)
+    progress_cb(0)
+    return progress_cb
