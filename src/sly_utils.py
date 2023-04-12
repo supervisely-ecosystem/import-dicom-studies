@@ -25,77 +25,52 @@ def import_dataset(api, dataset_path):
 
     batch_size = 50
     # Process the images in batches
-    if g.WITH_ANNS:
-        ds_images_paths, ds_annotations_paths = get_paths(dataset_path, with_anns=True)
-        batch_progress = sly.Progress(message="Processing images", total_cnt=len(ds_images_paths))
-        for batch_imgs, batch_anns in zip(
-            sly.batched(ds_images_paths, batch_size), sly.batched(ds_annotations_paths, batch_size)
-        ):
-            import_images_with_anns(api, dataset, batch_imgs, batch_anns)
-            batch_progress.iters_done_report(len(batch_imgs))
-    else:
-        ds_images_paths = get_paths(dataset_path, with_anns=False)
-        batch_progress = sly.Progress(message="Processing images", total_cnt=len(ds_images_paths))
-        for batch_imgs in sly.batched(ds_images_paths, batch_size):
-            import_images_only(api, dataset, batch_imgs)
-            batch_progress.iters_done_report(len(batch_imgs))
+    ds_images_paths, ds_annotations_paths = get_paths(dataset_path, with_anns=g.WITH_ANNS)
+    batch_progress = sly.Progress(message="Processing images", total_cnt=len(ds_images_paths))
+
+    for batch_imgs, batch_anns in zip(
+        sly.batched(ds_images_paths, batch_size),
+        sly.batched(ds_annotations_paths, batch_size),
+    ):
+        import_images(api, dataset, batch_imgs, batch_anns)
+        batch_progress.iters_done_report(len(batch_imgs))
 
 
-def import_images_with_anns(api, dataset, batch_imgs, batch_anns):
-    """Imports a batch of images into the dataset."""
-    # Convert DICOM images to .nrrd format and merge annotations
+def import_images(api, dataset, batch_imgs, batch_anns):
     img_paths = []
-    images_names = []
+    img_names = []
     anns = []
+
     for image_path, annotation_path in zip(batch_imgs, batch_anns):
         image_path, image_name, ann_from_dcm = dcm2nrrd(
             image_path=image_path,
             group_tag_name=g.GROUP_TAG_NAME,
         )
         img_paths.append(image_path)
-        images_names.append(image_name)
-        ann = sly.Annotation.load_json_file(annotation_path, g.project_meta)
+        img_names.append(image_name)
 
-        anns.append(ann.merge(ann_from_dcm))
+        if g.WITH_ANNS:
+            ann = sly.Annotation.load_json_file(annotation_path, g.project_meta_from_sly_format)
+            anns.append(ann.merge(ann_from_dcm))
+        else:
+            anns.append(ann_from_dcm)
 
     # Upload the images and annotations to the project
     dst_image_infos = api.image.upload_paths(
-        dataset_id=dataset.id, names=images_names, paths=img_paths
+        dataset_id=dataset.id, names=img_names, paths=img_paths
     )
     dst_image_ids = [img_info.id for img_info in dst_image_infos]
 
+    # Merge meta from annotations (if supervisely format) with other tags
+    if g.WITH_ANNS:
+        _meta_dct = g.project_meta_from_sly_format.to_json()
+        _meta_dct["tags"] += g.project_meta.to_json()["tags"]
+        check_unique_name(_meta_dct["tags"])
+    else:
+        _meta_dct = g.project_meta.to_json()
+
     # Update the project metadata and enable image grouping
-    _meta_dct = g.project_meta.to_json()
-    _meta_dct["tags"] += g.group_meta.to_json()["tags"]
     api.project.update_meta(id=g.project_id, meta=_meta_dct)
-    api.project.images_grouping(id=g.project_id, enable=True, tag_name=g.GROUP_TAG_NAME)
-
-    # upload annotations
-    api.annotation.upload_anns(img_ids=dst_image_ids, anns=anns)
-
-
-def import_images_only(api, dataset, batch_imgs):
-    """Imports a batch of images into the dataset."""
-    # Convert DICOM images to .nrrd format and merge annotations
-    images_paths = []
-    images_names = []
-    anns = []
-
-    for batch_image_path in batch_imgs:
-        image_path, image_name, ann = dcm2nrrd(
-            image_path=batch_image_path, group_tag_name=g.GROUP_TAG_NAME
-        )
-        images_paths.append(image_path)
-        images_names.append(image_name)
-        anns.append(ann)
-
-    dst_image_infos = api.image.upload_paths(
-        dataset_id=dataset.id, names=images_names, paths=images_paths
-    )
-    dst_image_ids = [img_info.id for img_info in dst_image_infos]
-
-    # Update the project metadata and enable image grouping
-    api.project.update_meta(id=g.project_id, meta=g.group_meta.to_json())
     api.project.images_grouping(id=g.project_id, enable=True, tag_name=g.GROUP_TAG_NAME)
 
     api.annotation.upload_anns(img_ids=dst_image_ids, anns=anns)
@@ -114,14 +89,6 @@ def get_paths(dataset_path, with_anns=False):
         img_dirname, ann_dirname = os.path.join(dataset_path, "img"), os.path.join(
             dataset_path, "ann"
         )
-        ds_annotations_paths = sorted(
-            [
-                os.path.join(ann_dirname, item)
-                for item in os.listdir(ann_dirname)
-                if file_exists(os.path.join(ann_dirname, item))
-                and is_json_file(os.path.join(ann_dirname, item))
-            ]
-        )
         dataset_path = img_dirname
 
     ds_images_paths = sorted(
@@ -133,7 +100,88 @@ def get_paths(dataset_path, with_anns=False):
         ]
     )
 
-    return (ds_images_paths, ds_annotations_paths) if with_anns else ds_images_paths
+    if with_anns:
+        ds_annotations_paths = sorted(
+            [
+                os.path.join(ann_dirname, item)
+                for item in os.listdir(ann_dirname)
+                if file_exists(os.path.join(ann_dirname, item))
+                and is_json_file(os.path.join(ann_dirname, item))
+            ]
+        )
+    else:
+        ds_annotations_paths = [None for _ in ds_images_paths]
+
+    return ds_images_paths, ds_annotations_paths
+
+
+def check_unique_name(lst: list[dict[str, str]]) -> None:
+    """
+    Checks if the 'name' key in a list of dictionaries has only unique values.
+    Raises a ValueError exception with a descriptive message if the values are not unique.
+    """
+    values = [d["name"] for d in lst]
+    if len(values) != len(set(values)):
+        non_unique_values = [v for v in set(values) if values.count(v) > 1]
+        raise ValueError(
+            f"The 'name' key in Project Meta has non-unique values: {non_unique_values}"
+        )
+
+
+def check_image_project_structure(root_dir, format, img_ext):
+    if format == "supervisely":
+        meta_file = os.path.join(root_dir, "meta.json")
+
+        for dataset_dir in os.scandir(root_dir):
+            if not dataset_dir.is_dir():
+                if not os.path.exists(meta_file):
+                    raise ValueError(
+                        f"Missing meta.json file. Instead got: {dataset_dir.path}. Learn more about supervisely format here: https://docs.supervise.ly/data-organization/00_ann_format_navi"
+                    )
+                continue
+
+            img_dir = os.path.join(dataset_dir.path, "img")
+            ann_dir = os.path.join(dataset_dir.path, "ann")
+
+            if not os.path.exists(img_dir):
+                raise ValueError(
+                    f"Missing 'img' directory in dataset directory: {dataset_dir.path}. Learn more about supervisely format here: https://docs.supervise.ly/data-organization/00_ann_format_navi"
+                )
+            if not os.path.exists(ann_dir):
+                raise ValueError(
+                    f"Missing 'ann' directory in dataset directory: {dataset_dir.path}. Learn more about supervisely format here: https://docs.supervise.ly/data-organization/00_ann_format_navi"
+                )
+            for data_file in os.scandir(img_dir):
+                if data_file.is_file() and not data_file.name.endswith(img_ext):
+                    g.my_app.logger.warn(
+                        f"Unexpected file '{data_file.name}' in 'img' directory: {img_dir}"
+                    )
+            for json_file in os.scandir(ann_dir):
+                if json_file.is_file() and not json_file.name.endswith(".json"):
+                    g.my_app.logger.warn(
+                        f"Unexpected file '{json_file.name}' in 'ann' directory: {ann_dir}"
+                    )
+    if format == "no_annotations":
+        for dataset_dir in os.scandir(root_dir):
+            if check_extension_in_folder(dataset_dir.path, img_ext):
+                for data_file in os.scandir(dataset_dir.path):
+                    if data_file.is_file() and not data_file.name.endswith(img_ext):
+                        g.my_app.logger.warn(
+                            f"Unexpected file '{data_file.name}' in directory: {dataset_dir.path}"
+                        )
+            else:
+                raise ValueError(
+                    f"Missing '{img_ext}' files in dataset directory: {dataset_dir.path}"
+                )
+    g.my_app.logger.info(f"Project structure is correct")
+
+
+def check_extension_in_folder(folder_path, extension):
+    files = os.listdir(folder_path)
+    for file in files:
+        if file.endswith(extension):
+            return True
+    return False
 
 
 def update_progress(count, api: sly.Api, task_id: int, progress: sly.Progress) -> None:
@@ -282,10 +330,10 @@ def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
         if dcm_tag_value is None:
             continue
 
-        dcm_tag_meta = g.group_meta.get_tag_meta(dcm_tag_name)
+        dcm_tag_meta = g.project_meta.get_tag_meta(dcm_tag_name)
         if dcm_tag_meta is None:
             dcm_tag_meta = sly.TagMeta(dcm_tag_name, sly.TagValueType.ANY_STRING)
-            g.group_meta = g.group_meta.add_tag_meta(dcm_tag_meta)
+            g.project_meta = g.project_meta.add_tag_meta(dcm_tag_meta)
 
         dcm_tag = sly.Tag(dcm_tag_meta, dcm_tag_value)
         dcm_tags.append(dcm_tag)
@@ -305,10 +353,10 @@ def create_ann_with_tags(
 def create_group_tag(group_tag_info: Dict[str, str]) -> sly.Tag:
     """Creates grouping tag."""
     group_tag_name, group_tag_value = group_tag_info["name"], group_tag_info["value"]
-    group_tag_meta = g.group_meta.get_tag_meta(group_tag_name)
+    group_tag_meta = g.project_meta.get_tag_meta(group_tag_name)
     if group_tag_meta is None:
         group_tag_meta = sly.TagMeta(group_tag_name, sly.TagValueType.ANY_STRING)
-        g.group_meta = g.group_meta.add_tag_meta(group_tag_meta)
+        g.project_meta = g.project_meta.add_tag_meta(group_tag_meta)
     group_tag = sly.Tag(group_tag_meta, group_tag_value)
     return group_tag
 

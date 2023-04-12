@@ -52,5 +52,5 @@ STORAGE_DIR: str = my_app.data_dir
 mkdir(STORAGE_DIR, True)
 
 project_id: int = None
-group_meta: sly.ProjectMeta = sly.ProjectMeta()
 project_meta: sly.ProjectMeta = sly.ProjectMeta()
+project_meta_from_sly_format: sly.ProjectMeta = sly.ProjectMeta()

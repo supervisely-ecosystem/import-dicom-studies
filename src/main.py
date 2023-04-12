@@ -20,8 +20,12 @@ def import_dicom_studies(
         workspace_id=g.WORKSPACE_ID, name=project_name, change_name_if_conflict=True
     )
     g.project_id = project.id
+
     if g.WITH_ANNS:
-        g.project_meta = sly.read_single_project(g.STORAGE_DIR).meta
+        f.check_image_project_structure(project_dir, format="supervisely", img_ext=".dcm")
+        g.project_meta_from_sly_format = sly.read_single_project(g.STORAGE_DIR).meta
+    else:
+        f.check_image_project_structure(project_dir, format="no_annotations", img_ext=".dcm")
 
     # Loop over the datasets in the project directory
     datasets_paths = [
