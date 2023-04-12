@@ -15,7 +15,7 @@ if sly.is_development():
 
 
 my_app: AppService = AppService()
-api: sly.Api = my_app.public_api
+# api: sly.Api = my_app.public_api
 
 TEAM_ID = sly.env.team_id()
 WORKSPACE_ID = sly.env.workspace_id()
@@ -53,3 +53,4 @@ mkdir(STORAGE_DIR, True)
 
 project_id: int = None
 group_meta: sly.ProjectMeta = sly.ProjectMeta()
+project_meta: sly.ProjectMeta = sly.ProjectMeta()

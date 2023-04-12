@@ -10,14 +10,87 @@ import nrrd
 import pydicom
 import supervisely as sly
 from pydicom import FileDataset
-from supervisely.io.fs import (
-    get_file_ext,
-    get_file_name,
-    get_file_name_with_ext,
-    silent_remove,
-)
+from supervisely.io.fs import file_exists, get_file_name_with_ext, silent_remove
 
 import sly_globals as g
+
+
+def import_dataset(api, dataset_path):
+    """Imports a single dataset into the project."""
+    # Create a new dataset in the project
+    dataset_name = os.path.basename(os.path.normpath(dataset_path))
+    dataset = api.dataset.create(
+        project_id=g.project_id, name=dataset_name, change_name_if_conflict=True
+    )
+
+    # Process the images in batches
+    ds_images_paths, ds_annotations_paths = get_img_ann_paths(dataset_path)
+    batch_progress = sly.Progress(message="Processing images", total_cnt=len(ds_images_paths))
+    batch_size = 50
+    for batch_imgs, batch_anns in zip(
+        sly.batched(ds_images_paths, batch_size), sly.batched(ds_annotations_paths, batch_size)
+    ):
+        import_images(api, dataset, batch_imgs, batch_anns)
+        batch_progress.iters_done_report(len(batch_imgs))
+
+
+def import_images(api, dataset, batch_imgs, batch_anns):
+    """Imports a batch of images into the dataset."""
+    # Convert DICOM images to .nrrd format and merge annotations
+    img_paths = []
+    images_names = []
+    anns = []
+    for image_path, annotation_path in zip(batch_imgs, batch_anns):
+        image_path, image_name, ann_from_dcm = dcm2nrrd(
+            image_path=image_path,
+            group_tag_name=g.GROUP_TAG_NAME,
+        )
+        img_paths.append(image_path)
+        images_names.append(image_name)
+        ann = sly.Annotation.load_json_file(annotation_path, g.project_meta)
+
+        anns.append(ann.merge(ann_from_dcm))
+
+    # Upload the images and annotations to the project
+    dst_image_infos = api.image.upload_paths(
+        dataset_id=dataset.id, names=images_names, paths=img_paths
+    )
+    dst_image_ids = [img_info.id for img_info in dst_image_infos]
+
+    # Update the project metadata and enable image grouping
+    _meta_dct = g.project_meta.to_json()
+    _meta_dct["tags"] += g.group_meta.to_json()["tags"]
+    api.project.update_meta(id=g.project_id, meta=_meta_dct)
+    api.project.images_grouping(id=g.project_id, enable=True, tag_name=g.GROUP_TAG_NAME)
+
+    # upload annotations
+    api.annotation.upload_anns(img_ids=dst_image_ids, anns=anns)
+
+
+def get_img_ann_paths(dataset_path):
+    subfolders = os.listdir(dataset_path)
+    if "img" not in subfolders or "ann" not in subfolders:
+        raise ValueError("The 'img' and/or 'ann' folders do not exist in the dataset path.")
+
+    img_dirname, ann_dirname = os.path.join(dataset_path, "img"), os.path.join(dataset_path, "ann")
+    ds_images_paths = sorted(
+        [
+            os.path.join(img_dirname, item)
+            for item in os.listdir(img_dirname)
+            if file_exists(os.path.join(img_dirname, item))
+            and is_dicom_file(os.path.join(img_dirname, item))
+        ]
+    )
+    ds_annotations_paths = sorted(
+        [
+            os.path.join(ann_dirname, item)
+            for item in os.listdir(ann_dirname)
+            if file_exists(os.path.join(ann_dirname, item))
+            and is_json_file(os.path.join(ann_dirname, item))
+        ]
+    )
+
+    return ds_images_paths, ds_annotations_paths
 
 
 def update_progress(count, api: sly.Api, task_id: int, progress: sly.Progress) -> None:
@@ -112,54 +185,6 @@ def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) ->
     return project_path
 
 
-def create_group_tag(group_tag_info: Dict[str, str]) -> sly.Tag:
-    """Creates grouping tag."""
-    group_tag_name, group_tag_value = group_tag_info["name"], group_tag_info["value"]
-    group_tag_meta = g.group_meta.get_tag_meta(group_tag_name)
-    if group_tag_meta is None:
-        group_tag_meta = sly.TagMeta(group_tag_name, sly.TagValueType.ANY_STRING)
-        g.group_meta = g.group_meta.add_tag_meta(group_tag_meta)
-    group_tag = sly.Tag(group_tag_meta, group_tag_value)
-    return group_tag
-
-
-def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
-    """Create tags from DICOM metadata."""
-    dcm_tags = []
-    for dcm_tag in g.DCM_TAGS:
-        try:
-            dcm_tag_name = str(dcm[dcm_tag].name)
-            dcm_tag_value = str(dcm[dcm_tag].value)
-        except:
-            dcm_filename = get_file_name_with_ext(dcm.filename)
-            g.my_app.logger.warn(
-                f"Couldn't find key: '{dcm_tag}' in file's metadata: '{dcm_filename}'"
-            )
-            continue
-        if dcm_tag_value is None:
-            continue
-        dcm_tag_meta = g.group_meta.get_tag_meta(dcm_tag_name)
-        if dcm_tag_meta is not None:
-            dcm_tag = sly.Tag(dcm_tag_meta, dcm_tag_value)
-        else:
-            dcm_tag_meta = sly.TagMeta(dcm_tag_name, sly.TagValueType.ANY_STRING)
-            g.group_meta = g.group_meta.add_tag_meta(dcm_tag_meta)
-            g.api.project.update_meta(id=g.project_id, meta=g.group_meta.to_json())
-            dcm_tag = sly.Tag(dcm_tag_meta, dcm_tag_value)
-        dcm_tags.append(dcm_tag)
-    return dcm_tags
-
-
-def create_ann_with_tags(
-    path_to_img: str, group_tag_info: dict, dcm_tags: List[sly.Tag] = None
-) -> sly.Annotation:
-    """Creates annotation with tags."""
-    img_size = nrrd.read_header(path_to_img)["sizes"].tolist()[::-1]
-    group_tag = create_group_tag(group_tag_info)
-    tags_to_add = [tag for tag in [group_tag] + (dcm_tags or []) if tag.value is not None]
-    return sly.Annotation(img_size=img_size).add_tags(sly.TagCollection(tags_to_add))
-
-
 def dcm2nrrd(
     image_path: str,
     group_tag_name: str,
@@ -195,6 +220,54 @@ def dcm2nrrd(
             ann = ann.add_tags(sly.TagCollection(dcm_tags))
 
     return save_path, image_name, ann
+
+
+def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
+    """Create tags from DICOM metadata."""
+    dcm_tags = []
+    for dcm_tag in g.DCM_TAGS:
+        try:
+            dcm_tag_name = str(dcm[dcm_tag].name)
+            dcm_tag_value = str(dcm[dcm_tag].value)
+        except:
+            dcm_filename = get_file_name_with_ext(dcm.filename)
+            g.my_app.logger.warn(
+                f"Couldn't find key: '{dcm_tag}' in file's metadata: '{dcm_filename}'"
+            )
+            continue
+
+        if dcm_tag_value is None:
+            continue
+
+        dcm_tag_meta = g.group_meta.get_tag_meta(dcm_tag_name)
+        if dcm_tag_meta is None:
+            dcm_tag_meta = sly.TagMeta(dcm_tag_name, sly.TagValueType.ANY_STRING)
+            g.group_meta = g.group_meta.add_tag_meta(dcm_tag_meta)
+
+        dcm_tag = sly.Tag(dcm_tag_meta, dcm_tag_value)
+        dcm_tags.append(dcm_tag)
+    return dcm_tags
+
+
+def create_ann_with_tags(
+    path_to_img: str, group_tag_info: dict, dcm_tags: List[sly.Tag] = None
+) -> sly.Annotation:
+    """Creates annotation with tags."""
+    img_size = nrrd.read_header(path_to_img)["sizes"].tolist()[::-1]
+    group_tag = create_group_tag(group_tag_info)
+    tags_to_add = [tag for tag in [group_tag] + (dcm_tags or []) if tag.value is not None]
+    return sly.Annotation(img_size=img_size).add_tags(sly.TagCollection(tags_to_add))
+
+
+def create_group_tag(group_tag_info: Dict[str, str]) -> sly.Tag:
+    """Creates grouping tag."""
+    group_tag_name, group_tag_value = group_tag_info["name"], group_tag_info["value"]
+    group_tag_meta = g.group_meta.get_tag_meta(group_tag_name)
+    if group_tag_meta is None:
+        group_tag_meta = sly.TagMeta(group_tag_name, sly.TagValueType.ANY_STRING)
+        g.group_meta = g.group_meta.add_tag_meta(group_tag_meta)
+    group_tag = sly.Tag(group_tag_meta, group_tag_value)
+    return group_tag
 
 
 def get_progress_cb(
