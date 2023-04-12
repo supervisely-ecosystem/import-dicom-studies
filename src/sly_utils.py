@@ -114,17 +114,12 @@ def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) ->
 
 def create_group_tag(group_tag_info: Dict[str, str]) -> sly.Tag:
     """Creates grouping tag."""
-    group_tag_name = group_tag_info["name"]
-    group_tag_value = group_tag_info["value"]
-    group_tag_meta = g.project_meta.get_tag_meta(group_tag_name)
-    if group_tag_meta is not None:
-        group_tag = sly.Tag(group_tag_meta, group_tag_value)
-    else:
+    group_tag_name, group_tag_value = group_tag_info["name"], group_tag_info["value"]
+    group_tag_meta = g.group_meta.get_tag_meta(group_tag_name)
+    if group_tag_meta is None:
         group_tag_meta = sly.TagMeta(group_tag_name, sly.TagValueType.ANY_STRING)
-        g.project_meta = g.project_meta.add_tag_meta(group_tag_meta)
-        g.api.project.update_meta(id=g.project_id, meta=g.project_meta.to_json())
-        g.api.project.images_grouping(id=g.project_id, enable=True, tag_name=g.GROUP_TAG_NAME)
-        group_tag = sly.Tag(group_tag_meta, group_tag_value)
+        g.group_meta = g.group_meta.add_tag_meta(group_tag_meta)
+    group_tag = sly.Tag(group_tag_meta, group_tag_value)
     return group_tag
 
 
@@ -143,13 +138,13 @@ def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
             continue
         if dcm_tag_value is None:
             continue
-        dcm_tag_meta = g.project_meta.get_tag_meta(dcm_tag_name)
+        dcm_tag_meta = g.group_meta.get_tag_meta(dcm_tag_name)
         if dcm_tag_meta is not None:
             dcm_tag = sly.Tag(dcm_tag_meta, dcm_tag_value)
         else:
             dcm_tag_meta = sly.TagMeta(dcm_tag_name, sly.TagValueType.ANY_STRING)
-            g.project_meta = g.project_meta.add_tag_meta(dcm_tag_meta)
-            g.api.project.update_meta(id=g.project_id, meta=g.project_meta.to_json())
+            g.group_meta = g.group_meta.add_tag_meta(dcm_tag_meta)
+            g.api.project.update_meta(id=g.project_id, meta=g.group_meta.to_json())
             dcm_tag = sly.Tag(dcm_tag_meta, dcm_tag_value)
         dcm_tags.append(dcm_tag)
     return dcm_tags
@@ -159,21 +154,16 @@ def create_ann_with_tags(
     path_to_img: str, group_tag_info: dict, dcm_tags: List[sly.Tag] = None
 ) -> sly.Annotation:
     """Creates annotation with tags."""
-    group_tag = create_group_tag(group_tag_info)
-    tags_to_add = [group_tag]
-    if dcm_tags is not None:
-        tags_to_add += dcm_tags
     img_size = nrrd.read_header(path_to_img)["sizes"].tolist()[::-1]
-    ann = sly.Annotation(img_size=img_size)
-    tags_with_values = []
-    for tag in tags_to_add:
-        if tag.value is not None:
-            tags_with_values.append(tag)
-    ann = ann.add_tags(sly.TagCollection(tags_with_values))
-    return ann
+    group_tag = create_group_tag(group_tag_info)
+    tags_to_add = [tag for tag in [group_tag] + (dcm_tags or []) if tag.value is not None]
+    return sly.Annotation(img_size=img_size).add_tags(sly.TagCollection(tags_to_add))
 
 
-def dcm2nrrd(image_path: str, group_tag_name: str) -> Tuple[str, str, sly.Annotation]:
+def dcm2nrrd(
+    image_path: str,
+    group_tag_name: str,
+) -> Tuple[str, str, sly.Annotation]:
     """Converts DICOM data to nrrd format and returns image path, image name, and image annotation."""
     dcm = pydicom.read_file(image_path)
     dcm_tags = None
@@ -190,7 +180,11 @@ def dcm2nrrd(image_path: str, group_tag_name: str) -> Tuple[str, str, sly.Annota
     try:
         group_tag_value = str(dcm[group_tag_name].value)
         group_tag = {"name": group_tag_name, "value": group_tag_value}
-        ann = create_ann_with_tags(save_path, group_tag, dcm_tags)
+        ann = create_ann_with_tags(
+            save_path,
+            group_tag,
+            dcm_tags,
+        )
     except:
         g.my_app.logger.warn(
             f"Couldn't find key: '{group_tag_name}' in file's metadata: '{original_name}'"

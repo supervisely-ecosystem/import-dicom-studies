@@ -1,4 +1,4 @@
-import os
+import os, json
 
 import supervisely as sly
 from supervisely.io.fs import file_exists
@@ -22,8 +22,6 @@ def import_dicom_studies(
     g.project_id = new_project.id
 
     project_fs = sly.read_single_project(g.STORAGE_DIR)
-    # if project_name is None:
-    #     project_name = project_fs.name
 
     datasets_paths = [
         os.path.join(project_dir, item)
@@ -33,7 +31,6 @@ def import_dicom_studies(
 
     ds_progress = sly.Progress(message="Importing Datasets", total_cnt=len(datasets_paths))
     for dataset_path in datasets_paths:
-
         dataset_name = os.path.basename(os.path.normpath(dataset_path))
         dataset = api.dataset.create(
             project_id=new_project.id, name=dataset_name, change_name_if_conflict=True
@@ -72,32 +69,37 @@ def import_dicom_studies(
         for batch_imgs, batch_anns in zip(
             sly.batched(ds_images_paths, 50), sly.batched(ds_annotations_paths, 50)
         ):
-
             img_paths = []
             images_names = []
             anns = []  # anns
 
-            for batch_image_path in batch_imgs:
-                image_path, image_name, ann = f.dcm2nrrd(
-                    image_path=batch_image_path, group_tag_name=g.GROUP_TAG_NAME
+            for image_path, annotation_path in zip(batch_imgs, batch_anns):
+                image_path, image_name, ann_from_dcm = f.dcm2nrrd(
+                    image_path=image_path,
+                    group_tag_name=g.GROUP_TAG_NAME,
                 )
                 img_paths.append(image_path)
                 images_names.append(image_name)
+
+                ann = sly.Annotation.load_json_file(annotation_path, project_fs.meta)
+                ann = ann.merge(ann_from_dcm)
+
                 anns.append(ann)
 
             dst_image_infos = api.image.upload_paths(
                 dataset_id=dataset.id, names=images_names, paths=img_paths
             )
             dst_image_ids = [img_info.id for img_info in dst_image_infos]
+
+            _meta = project_fs.meta.to_json()
+            _meta["tags"] += g.group_meta.to_json()["tags"]
+
+            g.api.project.update_meta(id=g.project_id, meta=_meta)
+            g.api.project.images_grouping(id=g.project_id, enable=True, tag_name=g.GROUP_TAG_NAME)
+
             api.annotation.upload_anns(img_ids=dst_image_ids, anns=anns)
 
             batch_progress.iters_done_report(len(batch_imgs))
-
-            api.project.update_meta(new_project.id, project_fs.meta.to_json())
-            api.annotation.upload_paths(
-                dst_image_ids,
-                batch_anns,
-            )
 
         ds_progress.iter_done_report()
 
