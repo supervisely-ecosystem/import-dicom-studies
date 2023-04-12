@@ -23,18 +23,25 @@ def import_dataset(api, dataset_path):
         project_id=g.project_id, name=dataset_name, change_name_if_conflict=True
     )
 
-    # Process the images in batches
-    ds_images_paths, ds_annotations_paths = get_img_ann_paths(dataset_path)
-    batch_progress = sly.Progress(message="Processing images", total_cnt=len(ds_images_paths))
     batch_size = 50
-    for batch_imgs, batch_anns in zip(
-        sly.batched(ds_images_paths, batch_size), sly.batched(ds_annotations_paths, batch_size)
-    ):
-        import_images(api, dataset, batch_imgs, batch_anns)
-        batch_progress.iters_done_report(len(batch_imgs))
+    # Process the images in batches
+    if g.WITH_ANNS:
+        ds_images_paths, ds_annotations_paths = get_paths(dataset_path, with_anns=True)
+        batch_progress = sly.Progress(message="Processing images", total_cnt=len(ds_images_paths))
+        for batch_imgs, batch_anns in zip(
+            sly.batched(ds_images_paths, batch_size), sly.batched(ds_annotations_paths, batch_size)
+        ):
+            import_images_with_anns(api, dataset, batch_imgs, batch_anns)
+            batch_progress.iters_done_report(len(batch_imgs))
+    else:
+        ds_images_paths = get_paths(dataset_path, with_anns=False)
+        batch_progress = sly.Progress(message="Processing images", total_cnt=len(ds_images_paths))
+        for batch_imgs in sly.batched(ds_images_paths, batch_size):
+            import_images_only(api, dataset, batch_imgs)
+            batch_progress.iters_done_report(len(batch_imgs))
 
 
-def import_images(api, dataset, batch_imgs, batch_anns):
+def import_images_with_anns(api, dataset, batch_imgs, batch_anns):
     """Imports a batch of images into the dataset."""
     # Convert DICOM images to .nrrd format and merge annotations
     img_paths = []
@@ -67,30 +74,66 @@ def import_images(api, dataset, batch_imgs, batch_anns):
     api.annotation.upload_anns(img_ids=dst_image_ids, anns=anns)
 
 
-def get_img_ann_paths(dataset_path):
-    subfolders = os.listdir(dataset_path)
-    if "img" not in subfolders or "ann" not in subfolders:
-        raise ValueError("The 'img' and/or 'ann' folders do not exist in the dataset path.")
+def import_images_only(api, dataset, batch_imgs):
+    """Imports a batch of images into the dataset."""
+    # Convert DICOM images to .nrrd format and merge annotations
+    images_paths = []
+    images_names = []
+    anns = []
 
-    img_dirname, ann_dirname = os.path.join(dataset_path, "img"), os.path.join(dataset_path, "ann")
+    for batch_image_path in batch_imgs:
+        image_path, image_name, ann = dcm2nrrd(
+            image_path=batch_image_path, group_tag_name=g.GROUP_TAG_NAME
+        )
+        images_paths.append(image_path)
+        images_names.append(image_name)
+        anns.append(ann)
+
+    dst_image_infos = api.image.upload_paths(
+        dataset_id=dataset.id, names=images_names, paths=images_paths
+    )
+    dst_image_ids = [img_info.id for img_info in dst_image_infos]
+
+    # Update the project metadata and enable image grouping
+    api.project.update_meta(id=g.project_id, meta=g.group_meta.to_json())
+    api.project.images_grouping(id=g.project_id, enable=True, tag_name=g.GROUP_TAG_NAME)
+
+    api.annotation.upload_anns(img_ids=dst_image_ids, anns=anns)
+
+
+def get_paths(dataset_path, with_anns=False):
+    if with_anns:
+        subfolders = os.listdir(dataset_path)
+        # check supervisely format
+        # Learn more here: https://docs.supervise.ly/data-organization/00_ann_format_navi
+        if "img" not in subfolders or "ann" not in subfolders:
+            raise ValueError(
+                "The 'img' and/or 'ann' folders do not exist in the dataset path. Learn more about supervisely format here: https://docs.supervise.ly/data-organization/00_ann_format_navi"
+            )
+
+        img_dirname, ann_dirname = os.path.join(dataset_path, "img"), os.path.join(
+            dataset_path, "ann"
+        )
+        ds_annotations_paths = sorted(
+            [
+                os.path.join(ann_dirname, item)
+                for item in os.listdir(ann_dirname)
+                if file_exists(os.path.join(ann_dirname, item))
+                and is_json_file(os.path.join(ann_dirname, item))
+            ]
+        )
+        dataset_path = img_dirname
+
     ds_images_paths = sorted(
         [
-            os.path.join(img_dirname, item)
-            for item in os.listdir(img_dirname)
-            if file_exists(os.path.join(img_dirname, item))
-            and is_dicom_file(os.path.join(img_dirname, item))
-        ]
-    )
-    ds_annotations_paths = sorted(
-        [
-            os.path.join(ann_dirname, item)
-            for item in os.listdir(ann_dirname)
-            if file_exists(os.path.join(ann_dirname, item))
-            and is_json_file(os.path.join(ann_dirname, item))
+            os.path.join(dataset_path, item)
+            for item in os.listdir(dataset_path)
+            if file_exists(os.path.join(dataset_path, item))
+            and is_dicom_file(os.path.join(dataset_path, item))
         ]
     )
 
-    return ds_images_paths, ds_annotations_paths
+    return (ds_images_paths, ds_annotations_paths) if with_anns else ds_images_paths
 
 
 def update_progress(count, api: sly.Api, task_id: int, progress: sly.Progress) -> None:
