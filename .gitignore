@@ -3,6 +3,3 @@
 venv
 debug
 .venv/
-src/__pycache__/sly_utils.cpython-310.pyc
-src/__pycache__/sly_globals.cpython-310.pyc
-src/__pycache__/
