@@ -154,10 +154,16 @@ def check_image_project_structure(root_dir: str, with_anns: bool, img_ext: str) 
                     f"Missing 'ann' directory in dataset directory: {dataset_dir.path}. Learn more about supervisely format here: https://docs.supervise.ly/data-organization/00_ann_format_navi"
                 )
             for data_file in os.scandir(img_dir):
-                if data_file.is_file() and not data_file.name.endswith(img_ext):
-                    g.my_app.logger.warn(
-                        f"Unexpected file '{data_file.name}' in 'img' directory: {img_dir}"
-                    )
+                if img_ext == ".dcm":
+                    if data_file.is_file() and not is_dicom_file(data_file.path):
+                        g.my_app.logger.warn(
+                            f"Unexpected file '{data_file.name}' in 'img' directory: {img_dir}"
+                        )
+                else:
+                    if data_file.is_file() and not data_file.name.endswith(img_ext):
+                        g.my_app.logger.warn(
+                            f"Unexpected file '{data_file.name}' in 'img' directory: {img_dir}"
+                        )
             for json_file in os.scandir(ann_dir):
                 if json_file.is_file() and not json_file.name.endswith(".json"):
                     g.my_app.logger.warn(
