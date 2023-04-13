@@ -24,7 +24,7 @@
   "headless": true,
   "context_menu": {
     "context_category": "Import",
-    "target": ["files_folder", "agent_folder"]
+    "target": ["files_folder", "files_file", "agent_folder", "agent_file"]
   },
   "poster": "https://user-images.githubusercontent.com/48245050/182844433-c620c1fc-76f4-4480-8461-984b8b713058.jpg"
 }
