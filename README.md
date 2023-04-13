@@ -37,6 +37,8 @@ Application key points:
 
 Learn more how to deal with images groups in [Import images groups](https://ecosystem.supervise.ly/apps/import-images-groups) readme
 
+🏷️ Starting from version `v1.2.0` application support annotations in supervisely format if the corresponding option is selected in modal window during application launch. Learn more about Supervisely project structure [here](https://developer.supervise.ly/api-references/supervisely-annotation-json-format/project-structure).
+
 🏋️ Starting from version `v1.1.0` application supports import from special directory on your local computer. It is made for Enterprise Edition customers who need to upload tens or even hundreds of gigabytes of data without using drag-ang-drop mechanism:
 
 1. Run agent on your computer where data is stored. Watch [how-to video](https://youtu.be/aO7Zc4kTrVg).
@@ -189,7 +191,9 @@ Prepare project and drag and drop it to `Team Files`.
 
 **Step 3.** Define group tag in modal window by selecting one of the predefined DICOM metadata keys, or type metadata key name manually. You can add more metadata keys as tags by adding them to editor in modal window. Specify if you need annotations (supervisely format).
 
-<img src="https://user-images.githubusercontent.com/78355358/231738590-fdfd791a-3a50-47d9-92d6-54d2ad3660ae.png" width="70%"/>
+<div align="center" markdown>
+  <img src="https://user-images.githubusercontent.com/78355358/231738590-fdfd791a-3a50-47d9-92d6-54d2ad3660ae.png" width="50%"/>
+</div>
 
 **Step 4.** Once app is started, new task will appear in workspace tasks. Wait for the app to process your data.
 
