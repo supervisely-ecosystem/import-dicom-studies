@@ -15,11 +15,11 @@ from supervisely.io.fs import file_exists, get_file_name_with_ext, silent_remove
 import sly_globals as g
 
 
-def import_dataset(api, dataset_path):
+def import_dataset(api: sly.Api, dataset_path: str) -> None:
     """Imports a single dataset into the project."""
     # Create a new dataset in the project
     dataset_name = os.path.basename(os.path.normpath(dataset_path))
-    dataset = api.dataset.create(
+    dataset_info = api.dataset.create(
         project_id=g.project_id, name=dataset_name, change_name_if_conflict=True
     )
 
@@ -32,11 +32,13 @@ def import_dataset(api, dataset_path):
         sly.batched(ds_images_paths, batch_size),
         sly.batched(ds_annotations_paths, batch_size),
     ):
-        import_images(api, dataset, batch_imgs, batch_anns)
+        import_images(api, dataset_info, batch_imgs, batch_anns)
         batch_progress.iters_done_report(len(batch_imgs))
 
 
-def import_images(api, dataset, batch_imgs, batch_anns):
+def import_images(
+    api: sly.Api, dataset: sly.DatasetInfo, batch_imgs: list, batch_anns: list
+) -> None:
     img_paths = []
     img_names = []
     anns = []
@@ -76,7 +78,7 @@ def import_images(api, dataset, batch_imgs, batch_anns):
     api.annotation.upload_anns(img_ids=dst_image_ids, anns=anns)
 
 
-def get_paths(dataset_path, with_anns=False):
+def get_paths(dataset_path: str, with_anns: bool = False) -> Tuple[List[str], List[str]]:
     if with_anns:
         subfolders = os.listdir(dataset_path)
         # check supervisely format
@@ -115,7 +117,7 @@ def get_paths(dataset_path, with_anns=False):
     return ds_images_paths, ds_annotations_paths
 
 
-def check_unique_name(lst: list[dict[str, str]]) -> None:
+def check_unique_name(lst: List[Dict[str, str]]) -> None:
     """
     Checks if the 'name' key in a list of dictionaries has only unique values.
     Raises a ValueError exception with a descriptive message if the values are not unique.
@@ -128,8 +130,8 @@ def check_unique_name(lst: list[dict[str, str]]) -> None:
         )
 
 
-def check_image_project_structure(root_dir, format, img_ext):
-    if format == "supervisely":
+def check_image_project_structure(root_dir: str, with_anns: bool, img_ext: str) -> None:
+    if with_anns:
         meta_file = os.path.join(root_dir, "meta.json")
 
         for dataset_dir in os.scandir(root_dir):
@@ -161,7 +163,7 @@ def check_image_project_structure(root_dir, format, img_ext):
                     g.my_app.logger.warn(
                         f"Unexpected file '{json_file.name}' in 'ann' directory: {ann_dir}"
                     )
-    if format == "no_annotations":
+    else:
         for dataset_dir in os.scandir(root_dir):
             if check_extension_in_folder(dataset_dir.path, img_ext):
                 for data_file in os.scandir(dataset_dir.path):
@@ -176,7 +178,7 @@ def check_image_project_structure(root_dir, format, img_ext):
     g.my_app.logger.info(f"Project structure is correct")
 
 
-def check_extension_in_folder(folder_path, extension):
+def check_extension_in_folder(folder_path: str, extension: str) -> bool:
     files = os.listdir(folder_path)
     for file in files:
         if file.endswith(extension):

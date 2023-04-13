@@ -46,7 +46,7 @@ else:
 INPUT_DIR: str = os.environ.get("modal.state.slyFolder")
 INPUT_FILE: str = os.environ.get("modal.state.slyFile")
 
-WITH_ANNS: str = bool(strtobool(os.environ.get("modal.state.withAnns")))
+WITH_ANNS: bool = bool(strtobool(os.environ.get("modal.state.withAnns")))
 
 STORAGE_DIR: str = my_app.data_dir
 mkdir(STORAGE_DIR, True)

@@ -21,11 +21,9 @@ def import_dicom_studies(
     )
     g.project_id = project.id
 
+    f.check_image_project_structure(project_dir, with_anns=g.WITH_ANNS, img_ext=".dcm")
     if g.WITH_ANNS:
-        f.check_image_project_structure(project_dir, format="supervisely", img_ext=".dcm")
         g.project_meta_from_sly_format = sly.read_single_project(g.STORAGE_DIR).meta
-    else:
-        f.check_image_project_structure(project_dir, format="no_annotations", img_ext=".dcm")
 
     # Loop over the datasets in the project directory
     datasets_paths = [
