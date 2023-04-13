@@ -137,8 +137,8 @@ def check_image_project_structure(root_dir: str, with_anns: bool, img_ext: str) 
         for dataset_dir in os.scandir(root_dir):
             if not dataset_dir.is_dir():
                 if not os.path.exists(meta_file):
-                    raise ValueError(
-                        f"Missing meta.json file. Instead got: {dataset_dir.path}. Learn more about supervisely format here: https://docs.supervise.ly/data-organization/00_ann_format_navi"
+                    g.my_app.logger.error(
+                        f"Missing 'meta.json' file. Instead got: {dataset_dir.path}. Learn more about supervisely format here: https://docs.supervise.ly/data-organization/00_ann_format_navi"
                     )
                 continue
 
@@ -146,11 +146,11 @@ def check_image_project_structure(root_dir: str, with_anns: bool, img_ext: str) 
             ann_dir = os.path.join(dataset_dir.path, "ann")
 
             if not os.path.exists(img_dir):
-                raise ValueError(
+                g.my_app.logger.error(
                     f"Missing 'img' directory in dataset directory: {dataset_dir.path}. Learn more about supervisely format here: https://docs.supervise.ly/data-organization/00_ann_format_navi"
                 )
             if not os.path.exists(ann_dir):
-                raise ValueError(
+                g.my_app.logger.error(
                     f"Missing 'ann' directory in dataset directory: {dataset_dir.path}. Learn more about supervisely format here: https://docs.supervise.ly/data-organization/00_ann_format_navi"
                 )
             for data_file in os.scandir(img_dir):
