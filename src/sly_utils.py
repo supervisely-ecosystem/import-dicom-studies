@@ -185,9 +185,8 @@ def check_image_project_structure(root_dir: str, with_anns: bool, img_ext: str) 
 
 
 def check_extension_in_folder(folder_path: str, extension: str) -> bool:
-    files = os.listdir(folder_path)
-    for file in files:
-        if file.endswith(extension):
+    for item in os.scandir(folder_path.path):
+        if item.is_file() and item.path.endswith(extension):
             return True
     return False
 
