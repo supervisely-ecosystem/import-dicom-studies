@@ -1,6 +1,9 @@
 import json
 import os
 
+from distutils.util import strtobool
+
+
 import supervisely as sly
 from dotenv import load_dotenv
 from supervisely.app.v1.app_service import AppService
@@ -12,7 +15,7 @@ if sly.is_development():
 
 
 my_app: AppService = AppService()
-api: sly.Api = my_app.public_api
+# api: sly.Api = my_app.public_api
 
 TEAM_ID = sly.env.team_id()
 WORKSPACE_ID = sly.env.workspace_id()
@@ -27,9 +30,7 @@ ADD_DCM_TAGS: bool = os.getenv("modal.state.addTagsFromDcm", "False").lower() in
 DCM_TAGS: list = []
 if ADD_DCM_TAGS:
     try:
-        DCM_TAGS: list = json.loads(
-            os.environ["modal.state.dcmTags"].replace("\\", "")
-        )["tags"]
+        DCM_TAGS: list = json.loads(os.environ["modal.state.dcmTags"].replace("\\", ""))["tags"]
     except:
         my_app.logger.warn("Invalid JSON input in modal window editor")
 
@@ -45,8 +46,11 @@ else:
 INPUT_DIR: str = os.environ.get("modal.state.slyFolder")
 INPUT_FILE: str = os.environ.get("modal.state.slyFile")
 
+WITH_ANNS: bool = bool(strtobool(os.environ.get("modal.state.withAnns")))
+
 STORAGE_DIR: str = my_app.data_dir
 mkdir(STORAGE_DIR, True)
 
 project_id: int = None
 project_meta: sly.ProjectMeta = sly.ProjectMeta()
+project_meta_from_sly_format: sly.ProjectMeta = sly.ProjectMeta()

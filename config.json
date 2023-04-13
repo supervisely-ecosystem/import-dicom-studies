@@ -1,11 +1,7 @@
 {
   "name": "Import dicom studies",
   "type": "app",
-  "categories": [
-    "import",
-    "images",
-    "dicom"
-  ],
+  "categories": ["import", "images", "dicom"],
   "description": "Convert DICOM data to nrrd format and creates a new project with images grouped by selected metadata",
   "docker_image": "supervisely/base-py-sdk:6.69.22",
   "min_agent_version": "6.7.4",
@@ -18,7 +14,8 @@
     "manualGroupTag": null,
     "uploadMeta": false,
     "addTagsFromDcm": false,
-    "dcmTags": "{\n\t\"tags\": [\n\t\t\"Manufacturer\",\n\t\t\"ManufacturerModelName\",\n\t\t\"Modality\"\n\t]\n}"
+    "dcmTags": "{\n\t\"tags\": [\n\t\t\"Manufacturer\",\n\t\t\"ManufacturerModelName\",\n\t\t\"Modality\"\n\t]\n}",
+    "withAnns": false
   },
   "task_location": "workspace_tasks",
   "icon": "https://i.imgur.com/lAEupML.png",
@@ -27,12 +24,7 @@
   "headless": true,
   "context_menu": {
     "context_category": "Import",
-    "target": [
-      "files_file",
-      "files_folder",
-      "agent_file",
-      "agent_folder"
-    ]
+    "target": ["files_folder", "files_file", "agent_folder", "agent_file"]
   },
   "poster": "https://user-images.githubusercontent.com/48245050/182844433-c620c1fc-76f4-4480-8461-984b8b713058.jpg"
 }
