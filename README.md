@@ -189,7 +189,7 @@ Prepare project and drag and drop it to `Team Files`.
 
 **Step 3.** Define group tag in modal window by selecting one of the predefined DICOM metadata keys, or type metadata key name manually. You can add more metadata keys as tags by adding them to editor in modal window. Specify if you need annotations (supervisely format).
 
-<img src="https://i.imgur.com/aps3VmR.png" width="70%"/>
+<img src="https://user-images.githubusercontent.com/78355358/231738590-fdfd791a-3a50-47d9-92d6-54d2ad3660ae.png" width="70%"/>
 
 **Step 4.** Once app is started, new task will appear in workspace tasks. Wait for the app to process your data.
 
