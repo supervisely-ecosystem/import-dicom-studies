@@ -171,6 +171,8 @@ def check_image_project_structure(root_dir: str, with_anns: bool, img_ext: str) 
                     )
     else:
         for dataset_dir in os.scandir(root_dir):
+            if not dataset_dir.is_dir():
+                continue
             if check_extension_in_folder(dataset_dir.path, img_ext):
                 for data_file in os.scandir(dataset_dir.path):
                     if data_file.is_file() and not data_file.name.endswith(img_ext):
