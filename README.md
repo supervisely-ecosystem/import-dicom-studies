@@ -147,7 +147,7 @@ Example of created project using the example below and tag `AcquisitionDate` as 
 Structure explained:
 
 1. Archive must contain only 1 project directory. Name of the project directory will be used for created supervisely project.
-2. Inside project directory must be `meta.json` file and dataset directory. Name of the dataset directory will be used for created dataset. Inside dataset directory must be `ann` and `img` subdirectories with `.json` and `DICOM` files. You can learn more about supervisely format [here](https://docs.supervise.ly/data-organization/00_ann_format_navi).
+2. Inside project directory must be `meta.json` file and dataset directory. Name of the dataset directory will be used for created dataset. Inside dataset directory must be `ann` and `img` subdirectories with `.json` and `DICOM` files. Learn more about [Supervisely Format](https://docs.supervise.ly/data-organization/00_ann_format_navi).
 3. Files will be grouped using `DICOM` metadata. If `DICOM` file doesn't contain inputted metadata field, it will be uploaded without tag.
 
 Example of created project using the example below and tag `AcquisitionDate` as user input:
