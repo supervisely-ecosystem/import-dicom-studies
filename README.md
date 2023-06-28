@@ -184,15 +184,15 @@ Prepare project and drag and drop it to `Team Files`.
 
 **Step 1.** Add [Import DICOM studies](https://ecosystem.supervise.ly/apps/import-dicom-studies) app to your team from Ecosystem
 
-<img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/import-dicom-studies" src="https://i.imgur.com/hEeXmrM.png" width="70%"/>
+<img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/import-dicom-studies" src="media/htr1.png" width="70%"/>
 
 **Step 2.** Run app from the context menu of your data on Team Files page:
-<img src="https://i.imgur.com/OQh3oa3.png"/>
+<img src="media/htr2.png"/>
 
 **Step 3.** Define group tag in modal window by selecting one of the predefined DICOM metadata keys, or type metadata key name manually. You can add more metadata keys as tags by adding them to editor in modal window. Specify if you need annotations (supervisely format).
 
 <div align="center" markdown>
-  <img src="https://user-images.githubusercontent.com/78355358/231738590-fdfd791a-3a50-47d9-92d6-54d2ad3660ae.png" width="50%"/>
+  <img src="media/htr2.png" width="50%"/>
 </div>
 
 **Step 4.** Once app is started, new task will appear in workspace tasks. Wait for the app to process your data.
@@ -201,8 +201,8 @@ Prepare project and drag and drop it to `Team Files`.
 
 **Step 1.** Open imported project.
 
-<img src="https://i.imgur.com/Z8ulu5y.png"/>
+<img src="media/htu.png"/>
 
 **Step 2.** Open dataset using new image annotator.
 
-<img src="https://i.imgur.com/kO8f0bL.png"/>
+<img src="media/htu2.png"/>
