@@ -1,5 +1,4 @@
-supervisely==6.69.22
-supervisely[apps]==6.69.22
+supervisely==6.72.55
 
 # for dcm without extention
 gdcm==1.1
