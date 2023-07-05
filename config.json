@@ -18,7 +18,7 @@
     "withAnns": false
   },
   "task_location": "workspace_tasks",
-  "icon": "https://i.imgur.com/lAEupML.png",
+  "icon": "media/icon.png",
   "icon_cover": false,
   "icon_background": "#FFFFFF",
   "headless": true,
