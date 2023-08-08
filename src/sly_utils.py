@@ -332,6 +332,8 @@ def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
         try:
             dcm_tag_name = str(dcm[dcm_tag].name)
             dcm_tag_value = str(dcm[dcm_tag].value)
+            if dcm_tag_value in ["", None] or len(dcm_tag_value) > 255:
+                continue
             sly.logger.info(f"Found key in file's metadata: '{dcm_tag_name}:{dcm_tag_value}'")
             tags_from_dcm.append((dcm_tag_name, dcm_tag_value))
         except:
@@ -343,8 +345,6 @@ def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
 
     dcm_sly_tags = []
     for dcm_tag_name, dcm_tag_value in tags_from_dcm:
-        if dcm_tag_value in ["", None]:
-            continue
 
         dcm_tag_meta = g.project_meta.get_tag_meta(dcm_tag_name)
         if dcm_tag_meta is None:
