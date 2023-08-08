@@ -40,11 +40,16 @@
   <!--    </pre>-->
 
   <sly-card title="" class="mt10">
-    <div>
-      <el-checkbox v-model="state.withAnns"
-        >Add annotations (supervisely format)</el-checkbox
-      >
-    </div>
+    <sly-field
+      title="Add annotations in Supervisely format"
+      description="Specify whether to add annotations to images or not"
+    >
+        <div>
+            <el-checkbox v-model="state.withAnns"
+                >Add annotations (supervisely format)</el-checkbox
+            >
+        </div>
+    </sly-field>
     <sly-field
       title="Add tags from DICOM metadata"
       description="Determine whether to add all, only specified or no tags from DICOM file metadata"
