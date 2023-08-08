@@ -324,14 +324,16 @@ def dcm2nrrd(
 
 def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
     """Create tags from DICOM metadata."""
-    dcm_tags = []
+
+    tags_from_dcm = []
     if g.ADD_ALL_DCM_TAGS:
         g.DCM_TAGS = list(dcm.keys())
     for dcm_tag in g.DCM_TAGS:
         try:
             dcm_tag_name = str(dcm[dcm_tag].name)
             dcm_tag_value = str(dcm[dcm_tag].value)
-
+            sly.logger.info(f"Found key in file's metadata: '{dcm_tag_name}:{dcm_tag_value}'")
+            tags_from_dcm.append((dcm_tag_name, dcm_tag_value))
         except:
             dcm_filename = get_file_name_with_ext(dcm.filename)
             g.my_app.logger.warn(
@@ -339,7 +341,9 @@ def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
             )
             continue
 
-        if dcm_tag_value is None:
+    dcm_sly_tags = []
+    for dcm_tag_name, dcm_tag_value in tags_from_dcm:
+        if dcm_tag_value in ["", None]:
             continue
 
         dcm_tag_meta = g.project_meta.get_tag_meta(dcm_tag_name)
@@ -348,8 +352,8 @@ def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
             g.project_meta = g.project_meta.add_tag_meta(dcm_tag_meta)
 
         dcm_tag = sly.Tag(dcm_tag_meta, dcm_tag_value)
-        dcm_tags.append(dcm_tag)
-    return dcm_tags
+        dcm_sly_tags.append(dcm_tag)
+    return dcm_sly_tags
 
 
 def create_ann_with_tags(
