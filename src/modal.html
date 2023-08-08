@@ -40,30 +40,22 @@
   <!--    </pre>-->
 
   <sly-card title="" class="mt10">
-    <sly-field
-      title="Add annotations in Supervisely format"
-      description="Specify whether to add annotations to images or not"
-    >
-        <div>
-            <el-checkbox v-model="state.withAnns"
-                >Add annotations (supervisely format)</el-checkbox
-            >
-        </div>
-    </sly-field>
+    <div>
+        <el-checkbox v-model="state.withAnns"
+            >Add annotations (supervisely format)</el-checkbox
+        >
+    </div>
     <sly-field
       title="Add tags from DICOM metadata"
       description="Determine whether to add all, only specified or no tags from DICOM file metadata"
     >
       <el-select v-model="state.addTagsFromDcm">
-        <el-option key="add all tags" value="add all tags" />
-        <el-option
-          key="add only specified tags"
-          value="add only specified tags"
-        />
+        <el-option key="all" value="all" />
+        <el-option key="only specified tags" value="only specified tags" />
         <el-option key="do not add tags" value="do not add tags" />
       </el-select>
       <div
-        v-if="state.addTagsFromDcm === 'add only specified tags'"
+        v-if="state.addTagsFromDcm === 'only specified tags'"
         class="mt10"
       >
         <sly-copy-to-clipboard>

@@ -322,21 +322,23 @@ def dcm2nrrd(
 
 def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
     """Create tags from DICOM metadata."""
-    if g.ADD_DCM_TAGS == "do not add tags":
+    if g.ADD_DCM_TAGS == g.DO_NOT_ADD:
         return None
 
     tags_from_dcm = []
-    if g.ADD_DCM_TAGS == "add all tags":
+    if g.ADD_DCM_TAGS == g.ADD_ALL:
         g.DCM_TAGS = list(dcm.keys())
-        sly.logger.info(f"Found {len(g.DCM_TAGS)} tags in file's metadata")
-        sly.logger.info(f"Tags: {g.DCM_TAGS}")
     for dcm_tag in g.DCM_TAGS:
         try:
-            dcm_tag_name = str(dcm[dcm_tag].name)
-            dcm_tag_value = str(dcm[dcm_tag].value)
-            if dcm_tag_value in ["", None] or len(dcm_tag_value) > 255:
+            curr_tag = dcm[dcm_tag]
+            dcm_tag_name = str(curr_tag.name)
+            dcm_tag_value = str(curr_tag.value)
+            if dcm_tag_value in ["", None]:
+                sly.logger.warn(f"Tag '{dcm_tag_name}' has empty value. Skipping tag.")
                 continue
-            sly.logger.info(f"Found key in file's metadata: '{dcm_tag_name}:{dcm_tag_value}'")
+            if len(dcm_tag_value) > 255:
+                sly.logger.warn(f"Tag '{dcm_tag_name}' has too long value. Skipping tag.")
+                continue
             tags_from_dcm.append((dcm_tag_name, dcm_tag_value))
         except:
             dcm_filename = get_file_name_with_ext(dcm.filename)
