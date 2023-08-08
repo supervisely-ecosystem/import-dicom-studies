@@ -55,11 +55,6 @@
           Tags with length more than 255 characters will be skipped.
         </span>
       </div>
-      <div class="mt10">
-        <el-checkbox v-model="state.withAnns"
-          >Add annotations (supervisely format)</el-checkbox
-        >
-      </div>
       <div v-if="state.addTagsFromDcm === 'Only specified tags'" class="mt10">
         <sly-copy-to-clipboard>
           <sly-editor
@@ -68,6 +63,11 @@
           >
           </sly-editor>
         </sly-copy-to-clipboard>
+      </div>
+      <div class="mt10">
+        <el-checkbox v-model="state.withAnns"
+          >Add annotations (supervisely format)</el-checkbox
+        >
       </div>
     </sly-field>
   </sly-card>
