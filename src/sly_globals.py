@@ -21,14 +21,11 @@ TEAM_ID = sly.env.team_id()
 WORKSPACE_ID = sly.env.workspace_id()
 
 TAG_MODE: str = os.environ["modal.state.tagMode"]
-ADD_DCM_TAGS: bool = os.getenv("modal.state.addTagsFromDcm", "False").lower() in (
-    "true",
-    "1",
-    "t",
-)
+ADD_DCM_TAGS: bool = bool(strtobool(os.environ.get("modal.state.addTagsFromDcm")))
+ADD_ALL_DCM_TAGS: bool = bool(strtobool(os.environ.get("modal.state.addAllTagsFromDcm")))
 
 DCM_TAGS: list = []
-if ADD_DCM_TAGS:
+if ADD_DCM_TAGS and not ADD_ALL_DCM_TAGS:
     try:
         DCM_TAGS: list = json.loads(os.environ["modal.state.dcmTags"].replace("\\", ""))["tags"]
     except:

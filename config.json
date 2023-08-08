@@ -18,6 +18,7 @@
         "manualGroupTag": null,
         "uploadMeta": false,
         "addTagsFromDcm": false,
+        "addAllTagsFromDcm": false,
         "dcmTags": "{\n\t\"tags\": [\n\t\t\"Manufacturer\",\n\t\t\"ManufacturerModelName\",\n\t\t\"Modality\"\n\t]\n}",
         "withAnns": false
     },

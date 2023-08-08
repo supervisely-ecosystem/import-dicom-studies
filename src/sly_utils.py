@@ -325,10 +325,13 @@ def dcm2nrrd(
 def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
     """Create tags from DICOM metadata."""
     dcm_tags = []
+    if g.ADD_ALL_DCM_TAGS:
+        g.DCM_TAGS = list(dcm.keys())
     for dcm_tag in g.DCM_TAGS:
         try:
             dcm_tag_name = str(dcm[dcm_tag].name)
             dcm_tag_value = str(dcm[dcm_tag].value)
+
         except:
             dcm_filename = get_file_name_with_ext(dcm.filename)
             g.my_app.logger.warn(

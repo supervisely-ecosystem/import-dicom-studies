@@ -41,16 +41,21 @@
 
   <sly-card title="" class="mt10">
     <div>
-      <el-checkbox v-model="state.addTagsFromDcm"
-        >Add tags from DICOM metadata</el-checkbox
-      >
-    </div>
-    <div>
       <el-checkbox v-model="state.withAnns"
         >Add annotations (supervisely format)</el-checkbox
       >
     </div>
-    <div v-if="state.addTagsFromDcm" class="mt10">
+    <div>
+      <el-checkbox :disabled="state.addAllTagsFromDcm" v-model="state.addTagsFromDcm"
+        >Add tags from DICOM metadata</el-checkbox
+      >
+    </div>
+    <div>
+      <el-checkbox v-if="state.addTagsFromDcm" v-model="state.addTagsFromDcm"
+        >Add all tags from DICOM metadata</el-checkbox
+      >
+    </div>
+    <div v-if="state.addTagsFromDcm && !state.addAllTagsFromDcm" class="mt10">
       <sly-copy-to-clipboard>
         <sly-editor
           v-model="state.dcmTags"
