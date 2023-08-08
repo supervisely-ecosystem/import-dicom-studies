@@ -40,11 +40,6 @@
   <!--    </pre>-->
 
   <sly-card title="" class="mt10">
-    <div>
-      <el-checkbox v-model="state.withAnns"
-        >Add annotations (supervisely format)</el-checkbox
-      >
-    </div>
     <sly-field
       title="Include additional tags from DICOM metadata"
       description="Determine whether to include all tags, only specified tags or do not include additional tags from DICOM file metadata"
@@ -54,13 +49,18 @@
         <el-option key="Only specified tags" value="Only specified tags" />
         <el-option key="Do not add tags" value="Do not add tags" />
       </el-select>
-      <div v-if="state.addTagsFromDcm === 'all'" class="mt5 mb5">
+      <div v-if="state.addTagsFromDcm === 'All tags'" class="mt5 mb5">
         <i class="zmdi zmdi-alert-triangle" style="color: #303030"></i>
         <span style="color: #303030">
           Tags with length more than 255 characters will be skipped.
         </span>
       </div>
-      <div v-if="state.addTagsFromDcm === 'only specified tags'" class="mt10">
+      <div>
+        <el-checkbox v-model="state.withAnns"
+          >Add annotations (supervisely format)</el-checkbox
+        >
+      </div>
+      <div v-if="state.addTagsFromDcm === 'Only specified tags'" class="mt10">
         <sly-copy-to-clipboard>
           <sly-editor
             v-model="state.dcmTags"
