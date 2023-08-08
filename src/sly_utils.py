@@ -291,9 +291,7 @@ def dcm2nrrd(
 ) -> Tuple[str, str, sly.Annotation]:
     """Converts DICOM data to nrrd format and returns image path, image name, and image annotation."""
     dcm = pydicom.read_file(image_path)
-    dcm_tags = None
-    if g.ADD_DCM_TAGS:
-        dcm_tags = create_dcm_tags(dcm)
+    dcm_tags = create_dcm_tags(dcm)
 
     pixel_data = dcm.pixel_array
     pixel_data = sly.image.rotate(img=pixel_data, degrees_angle=270)
@@ -316,7 +314,7 @@ def dcm2nrrd(
         )
         img_size = nrrd.read_header(save_path)["sizes"].tolist()[::-1]
         ann = sly.Annotation(img_size=img_size)
-        if g.ADD_DCM_TAGS:
+        if dcm_tags is not None:
             ann = ann.add_tags(sly.TagCollection(dcm_tags))
 
     return save_path, image_name, ann
@@ -324,11 +322,24 @@ def dcm2nrrd(
 
 def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
     """Create tags from DICOM metadata."""
-    dcm_tags = []
+    if g.ADD_DCM_TAGS == g.DO_NOT_ADD:
+        return None
+
+    tags_from_dcm = []
+    if g.ADD_DCM_TAGS == g.ADD_ALL:
+        g.DCM_TAGS = list(dcm.keys())
     for dcm_tag in g.DCM_TAGS:
         try:
-            dcm_tag_name = str(dcm[dcm_tag].name)
-            dcm_tag_value = str(dcm[dcm_tag].value)
+            curr_tag = dcm[dcm_tag]
+            dcm_tag_name = str(curr_tag.name)
+            dcm_tag_value = str(curr_tag.value)
+            if dcm_tag_value in ["", None]:
+                sly.logger.warn(f"Tag '{dcm_tag_name}' has empty value. Skipping tag.")
+                continue
+            if len(dcm_tag_value) > 255:
+                sly.logger.warn(f"Tag '{dcm_tag_name}' has too long value. Skipping tag.")
+                continue
+            tags_from_dcm.append((dcm_tag_name, dcm_tag_value))
         except:
             dcm_filename = get_file_name_with_ext(dcm.filename)
             g.my_app.logger.warn(
@@ -336,8 +347,8 @@ def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
             )
             continue
 
-        if dcm_tag_value is None:
-            continue
+    dcm_sly_tags = []
+    for dcm_tag_name, dcm_tag_value in tags_from_dcm:
 
         dcm_tag_meta = g.project_meta.get_tag_meta(dcm_tag_name)
         if dcm_tag_meta is None:
@@ -345,8 +356,8 @@ def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
             g.project_meta = g.project_meta.add_tag_meta(dcm_tag_meta)
 
         dcm_tag = sly.Tag(dcm_tag_meta, dcm_tag_value)
-        dcm_tags.append(dcm_tag)
-    return dcm_tags
+        dcm_sly_tags.append(dcm_tag)
+    return dcm_sly_tags
 
 
 def create_ann_with_tags(
