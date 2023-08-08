@@ -328,6 +328,8 @@ def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
     tags_from_dcm = []
     if g.ADD_ALL_DCM_TAGS:
         g.DCM_TAGS = list(dcm.keys())
+        sly.logger.info(f"Found {len(g.DCM_TAGS)} tags in file's metadata")
+        sly.logger.info(f"Tags: {g.DCM_TAGS}")
     for dcm_tag in g.DCM_TAGS:
         try:
             dcm_tag_name = str(dcm[dcm_tag].name)
