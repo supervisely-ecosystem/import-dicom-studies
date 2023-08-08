@@ -23,9 +23,9 @@ WORKSPACE_ID = sly.env.workspace_id()
 TAG_MODE: str = os.environ["modal.state.tagMode"]
 ADD_DCM_TAGS = str(os.environ.get("modal.state.addTagsFromDcm"))
 
-ADD_ALL = "all"
-ADD_ONLY_SPECIFIED = "only specified tags"
-DO_NOT_ADD = "do not add tags"
+ADD_ALL = "All tags"
+ADD_ONLY_SPECIFIED = "Only specified tags"
+DO_NOT_ADD = "Do not add tags"
 
 DCM_TAGS: list = []
 if ADD_DCM_TAGS == ADD_ONLY_SPECIFIED:

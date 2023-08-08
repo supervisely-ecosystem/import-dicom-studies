@@ -46,13 +46,13 @@
       >
     </div>
     <sly-field
-      title="Add tags from DICOM metadata"
-      description="Determine whether to add all, only specified or no tags from DICOM file metadata"
+      title="Include additional tags from DICOM metadata"
+      description="Determine whether to add all tags, only specified tags or do not add additional tags from DICOM file metadata"
     >
       <el-select v-model="state.addTagsFromDcm">
-        <el-option key="all" value="all" />
-        <el-option key="only specified tags" value="only specified tags" />
-        <el-option key="do not add tags" value="do not add tags" />
+        <el-option key="All tags" value="All tags" />
+        <el-option key="Only specified tags" value="Only specified tags" />
+        <el-option key="Do not add tags" value="Do not add tags" />
       </el-select>
       <div v-if="state.addTagsFromDcm === 'all'" class="mt5 mb5">
         <i class="zmdi zmdi-alert-triangle" style="color: #303030"></i>
