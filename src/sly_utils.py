@@ -291,9 +291,7 @@ def dcm2nrrd(
 ) -> Tuple[str, str, sly.Annotation]:
     """Converts DICOM data to nrrd format and returns image path, image name, and image annotation."""
     dcm = pydicom.read_file(image_path)
-    dcm_tags = None
-    if g.ADD_DCM_TAGS:
-        dcm_tags = create_dcm_tags(dcm)
+    dcm_tags = create_dcm_tags(dcm)
 
     pixel_data = dcm.pixel_array
     pixel_data = sly.image.rotate(img=pixel_data, degrees_angle=270)
@@ -316,7 +314,7 @@ def dcm2nrrd(
         )
         img_size = nrrd.read_header(save_path)["sizes"].tolist()[::-1]
         ann = sly.Annotation(img_size=img_size)
-        if g.ADD_DCM_TAGS:
+        if dcm_tags is not None:
             ann = ann.add_tags(sly.TagCollection(dcm_tags))
 
     return save_path, image_name, ann
@@ -324,9 +322,11 @@ def dcm2nrrd(
 
 def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
     """Create tags from DICOM metadata."""
+    if g.ADD_DCM_TAGS == "do not add tags":
+        return None
 
     tags_from_dcm = []
-    if g.ADD_ALL_DCM_TAGS:
+    if g.ADD_DCM_TAGS == "add all tags":
         g.DCM_TAGS = list(dcm.keys())
         sly.logger.info(f"Found {len(g.DCM_TAGS)} tags in file's metadata")
         sly.logger.info(f"Tags: {g.DCM_TAGS}")

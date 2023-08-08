@@ -45,24 +45,30 @@
         >Add annotations (supervisely format)</el-checkbox
       >
     </div>
-    <div>
-      <el-checkbox :disabled="state.addAllTagsFromDcm" v-model="state.addTagsFromDcm"
-        >Add tags from DICOM metadata</el-checkbox
+    <sly-field
+      title="Add tags from DICOM metadata"
+      description="Determine whether to add all, only specified or no tags from DICOM file metadata"
+    >
+      <el-select v-model="state.addTagsFromDcm">
+        <el-option key="add all tags" value="add all tags" />
+        <el-option
+          key="add only specified tags"
+          value="add only specified tags"
+        />
+        <el-option key="do not add tags" value="do not add tags" />
+      </el-select>
+      <div
+        v-if="state.addTagsFromDcm === 'add only specified tags'"
+        class="mt10"
       >
-    </div>
-    <div>
-      <el-checkbox v-if="state.addTagsFromDcm" v-model="state.addAllTagsFromDcm"
-        >Add all tags from DICOM metadata</el-checkbox
-      >
-    </div>
-    <div v-if="state.addTagsFromDcm && !state.addAllTagsFromDcm" class="mt10">
-      <sly-copy-to-clipboard>
-        <sly-editor
-          v-model="state.dcmTags"
-          :options="{mode: 'ace/mode/json', showGutter: false, readOnly: false, maxLines: 100, highlightActiveLine: true}"
-        >
-        </sly-editor>
-      </sly-copy-to-clipboard>
-    </div>
+        <sly-copy-to-clipboard>
+          <sly-editor
+            v-model="state.dcmTags"
+            :options="{mode: 'ace/mode/json', showGutter: false, readOnly: false, maxLines: 100, highlightActiveLine: true}"
+          >
+          </sly-editor>
+        </sly-copy-to-clipboard>
+      </div>
+    </sly-field>
   </sly-card>
 </sly-field>
