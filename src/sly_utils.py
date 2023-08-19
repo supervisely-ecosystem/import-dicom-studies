@@ -160,12 +160,12 @@ def check_image_project_structure(root_dir: str, with_anns: bool, img_ext: str) 
                             f"Unexpected file '{data_file.name}' in 'img' directory: {img_dir}"
                         )
                 else:
-                    if data_file.is_file() and not data_file.name.endswith(img_ext):
+                    if data_file.is_file() and not data_file.name.lower().endswith(img_ext):
                         g.my_app.logger.warn(
                             f"Unexpected file '{data_file.name}' in 'img' directory: {img_dir}"
                         )
             for json_file in os.scandir(ann_dir):
-                if json_file.is_file() and not json_file.name.endswith(".json"):
+                if json_file.is_file() and not json_file.name.lower().endswith(".json"):
                     g.my_app.logger.warn(
                         f"Unexpected file '{json_file.name}' in 'ann' directory: {ann_dir}"
                     )
@@ -175,7 +175,7 @@ def check_image_project_structure(root_dir: str, with_anns: bool, img_ext: str) 
                 continue
             if check_extension_in_folder(dataset_dir.path, img_ext):
                 for data_file in os.scandir(dataset_dir.path):
-                    if data_file.is_file() and not data_file.name.endswith(img_ext):
+                    if data_file.is_file() and not data_file.name.lower().endswith(img_ext):
                         g.my_app.logger.warn(
                             f"Unexpected file '{data_file.name}' in directory: {dataset_dir.path}"
                         )
@@ -188,7 +188,7 @@ def check_image_project_structure(root_dir: str, with_anns: bool, img_ext: str) 
 
 def check_extension_in_folder(folder_path: str, extension: str) -> bool:
     for item in os.scandir(folder_path):
-        if item.is_file() and item.path.endswith(extension):
+        if item.is_file() and item.path.lower().endswith(extension):
             return True
     return False
 
@@ -349,7 +349,6 @@ def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
 
     dcm_sly_tags = []
     for dcm_tag_name, dcm_tag_value in tags_from_dcm:
-
         dcm_tag_meta = g.project_meta.get_tag_meta(dcm_tag_name)
         if dcm_tag_meta is None:
             dcm_tag_meta = sly.TagMeta(dcm_tag_name, sly.TagValueType.ANY_STRING)
