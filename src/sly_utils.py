@@ -11,6 +11,7 @@ import pydicom
 import supervisely as sly
 from pydicom import FileDataset
 from supervisely.io.fs import file_exists, get_file_name_with_ext, silent_remove
+import numpy as np
 
 import sly_globals as g
 
@@ -44,18 +45,18 @@ def import_images(
     anns = []
 
     for image_path, annotation_path in zip(batch_imgs, batch_anns):
-        image_path, image_name, ann_from_dcm = dcm2nrrd(
+        image_paths, image_names, anns_from_dcm = dcm2nrrd(
             image_path=image_path,
             group_tag_name=g.GROUP_TAG_NAME,
         )
-        img_paths.append(image_path)
-        img_names.append(image_name)
+        img_paths.extend(image_paths)
+        img_names.extend(image_names)
 
         if g.WITH_ANNS:
             ann = sly.Annotation.load_json_file(annotation_path, g.project_meta_from_sly_format)
-            anns.append(ann.merge(ann_from_dcm))
+            anns.append(ann.merge(anns_from_dcm))
         else:
-            anns.append(ann_from_dcm)
+            anns.extend(anns_from_dcm)
 
     # Upload the images and annotations to the project
     dst_image_infos = api.image.upload_paths(
@@ -285,6 +286,47 @@ def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) ->
     return project_path
 
 
+def find_frame_axis(pixel_data: np.ndarray, frames: int):
+    for axis in range(len(pixel_data.shape)):
+        if pixel_data.shape[axis] == frames:
+            return axis
+    raise ValueError("Can't recognize frames axis")
+
+
+def create_pixel_data_set(dcm: FileDataset, frame_axis):
+    if frame_axis == 0:
+        pixel_array = np.transpose(dcm.pixel_array, (2, 1, 0))
+    elif frame_axis == 1:
+        pixel_array = np.transpose(dcm.pixel_array, (2, 0, 1))
+    else:
+        pixel_array = dcm.pixel_array
+    frame_axis = 2
+    list_of_images = np.split(pixel_array, int(dcm.NumberOfFrames), axis=frame_axis)
+    return list_of_images, frame_axis
+
+
+def get_nrrd_header(image_path, frame_axis):
+    _, meta = sly.volume.read_dicom_serie_volume([image_path], False)
+    dimensions = meta.get("dimensionsIJK")
+    header = {
+        "type": "float",
+        "sizes": [dimensions.get("x"), dimensions.get("y")],
+        "dimension": 2,
+        "space": "right-anterior-superior",
+    }
+
+    if frame_axis == 0:
+        spacing = meta["spacing"][1:]
+        header["space directions"] = [[spacing[0], 0], [0, spacing[1]]]
+    if frame_axis == 1:
+        spacing = meta["spacing"][0::2]
+        header["space directions"] = [[spacing[0], 0], [0, spacing[1]]]
+    if frame_axis == 2:
+        spacing = meta["spacing"][0:2]
+        header["space directions"] = [[spacing[0], 0], [0, spacing[1]]]
+    return header
+
+
 def dcm2nrrd(
     image_path: str,
     group_tag_name: str,
@@ -292,36 +334,60 @@ def dcm2nrrd(
     """Converts DICOM data to nrrd format and returns image path, image name, and image annotation."""
     dcm = pydicom.read_file(image_path)
     dcm_tags = create_dcm_tags(dcm)
+    pixel_data_list = [dcm.pixel_array]
 
-    pixel_data = dcm.pixel_array
-    if len(pixel_data.shape) == 3:
-        if pixel_data.shape[2] > 4:
-            pixel_data = pixel_data[:, :, :4]
-            sly.logger.warning("Image has more than 4 channels. Extra channels were skipped.")
-    pixel_data = sly.image.rotate(img=pixel_data, degrees_angle=270)
-    original_name = get_file_name_with_ext(image_path)
-    image_name = f"{original_name}.nrrd"
-    save_path = os.path.join(os.path.dirname(image_path), image_name)
-    nrrd.write(save_path, pixel_data)
+    if len(dcm.pixel_array.shape) == 3:
+        try:
+            frames = int(dcm.NumberOfFrames)
+        except Exception:
+            raise NotImplementedError(
+                f"Can't get frames from dcm meta. This type of data is not supported"
+            )
+        frame_axis = find_frame_axis(dcm.pixel_array, frames)
+        pixel_data_list, frame_axis = create_pixel_data_set(dcm, frame_axis)
+        header = get_nrrd_header(image_path, 2)
+    else:
+        header = None
+        frames = 1
+    save_paths = []
+    image_names = []
+    anns = []
 
-    try:
-        group_tag_value = str(dcm[group_tag_name].value)
-        group_tag = {"name": group_tag_name, "value": group_tag_value}
-        ann = create_ann_with_tags(
-            save_path,
-            group_tag,
-            dcm_tags,
-        )
-    except:
-        g.my_app.logger.warn(
-            f"Couldn't find key: '{group_tag_name}' in file's metadata: '{original_name}'"
-        )
-        img_size = nrrd.read_header(save_path)["sizes"].tolist()[::-1]
-        ann = sly.Annotation(img_size=img_size)
-        if dcm_tags is not None:
-            ann = ann.add_tags(sly.TagCollection(dcm_tags))
+    for pixel_data, frame_number in zip(
+        pixel_data_list,
+        [f"{i:0{len(str(frames))}d}" for i in range(frames)],
+    ):
+        original_name = get_file_name_with_ext(image_path)
 
-    return save_path, image_name, ann
+        if frames == 1:
+            pixel_data = sly.image.rotate(img=pixel_data, degrees_angle=270)
+            image_name = f"{original_name}.nrrd"
+        else:
+            pixel_data = np.squeeze(pixel_data, frame_axis)
+            image_name = f"{frame_number}_{original_name}.nrrd"
+
+        save_path = os.path.join(os.path.dirname(image_path), image_name)
+        nrrd.write(save_path, pixel_data, header)
+        save_paths.append(save_path)
+        image_names.append(image_name)
+        try:
+            group_tag_value = str(dcm[group_tag_name].value)
+            group_tag = {"name": group_tag_name, "value": group_tag_value}
+            ann = create_ann_with_tags(
+                save_path,
+                group_tag,
+                dcm_tags,
+            )
+        except:
+            g.my_app.logger.warn(
+                f"Couldn't find key: '{group_tag_name}' in file's metadata: '{original_name}'"
+            )
+            img_size = nrrd.read_header(save_path)["sizes"].tolist()[::-1]
+            ann = sly.Annotation(img_size=img_size)
+            if dcm_tags is not None:
+                ann = ann.add_tags(sly.TagCollection(dcm_tags))
+        anns.append(ann)
+    return save_paths, image_names, anns
 
 
 def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
