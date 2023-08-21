@@ -294,6 +294,10 @@ def dcm2nrrd(
     dcm_tags = create_dcm_tags(dcm)
 
     pixel_data = dcm.pixel_array
+    if len(pixel_data.shape) == 3:
+        if pixel_data.shape[2] > 4:
+            pixel_data = pixel_data[:, :, :4]
+            sly.logger.warning("Image has more than 4 channels. Extra channels were skipped.")
     pixel_data = sly.image.rotate(img=pixel_data, degrees_angle=270)
     original_name = get_file_name_with_ext(image_path)
     image_name = f"{original_name}.nrrd"
