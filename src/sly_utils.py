@@ -418,10 +418,10 @@ def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
             dcm_tag_name = str(curr_tag.name)
             dcm_tag_value = str(curr_tag.value)
             if dcm_tag_value in ["", None]:
-                sly.logger.warn(f"Tag '{dcm_tag_name}' has empty value. Skipping tag.")
+                sly.logger.warn(f"Tag [{dcm_tag_name}] has empty value. Skipping tag.")
                 continue
             if len(dcm_tag_value) > 255:
-                sly.logger.warn(f"Tag '{dcm_tag_name}' has too long value. Skipping tag.")
+                sly.logger.warn(f"Tag [{dcm_tag_name}] has too long value. Skipping tag.")
                 continue
             tags_from_dcm.append((dcm_tag_name, dcm_tag_value))
         except:
