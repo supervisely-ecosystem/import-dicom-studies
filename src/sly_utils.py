@@ -11,6 +11,7 @@ import pydicom
 import supervisely as sly
 from pydicom import FileDataset
 from supervisely.io.fs import file_exists, get_file_name_with_ext, silent_remove
+import numpy as np
 
 import sly_globals as g
 
@@ -44,18 +45,21 @@ def import_images(
     anns = []
 
     for image_path, annotation_path in zip(batch_imgs, batch_anns):
-        image_path, image_name, ann_from_dcm = dcm2nrrd(
+        image_paths, image_names, anns_from_dcm = dcm2nrrd(
             image_path=image_path,
             group_tag_name=g.GROUP_TAG_NAME,
         )
-        img_paths.append(image_path)
-        img_names.append(image_name)
+        img_paths.extend(image_paths)
+        img_names.extend(image_names)
 
         if g.WITH_ANNS:
             ann = sly.Annotation.load_json_file(annotation_path, g.project_meta_from_sly_format)
-            anns.append(ann.merge(ann_from_dcm))
+
+            for ann_dcm in anns_from_dcm:
+                ann = ann.merge(ann_dcm)
+            anns.append(ann)
         else:
-            anns.append(ann_from_dcm)
+            anns.extend(anns_from_dcm)
 
     # Upload the images and annotations to the project
     dst_image_infos = api.image.upload_paths(
@@ -66,8 +70,10 @@ def import_images(
     # Merge meta from annotations (if supervisely format) with other tags
     if g.WITH_ANNS:
         _meta_dct = g.project_meta_from_sly_format.to_json()
-        _meta_dct["tags"] += g.project_meta.to_json()["tags"]
-        check_unique_name(_meta_dct["tags"])
+        _new_meta_cct = g.project_meta.to_json()
+        remove_sly_tag_name_if_not_unique(_meta_dct, _new_meta_cct)
+        _meta_dct["tags"] += _new_meta_cct["tags"]
+        check_unique_name(_meta_dct["tags"])  # left for emergency cases
     else:
         _meta_dct = g.project_meta.to_json()
 
@@ -117,6 +123,16 @@ def get_paths(dataset_path: str, with_anns: bool = False) -> Tuple[List[str], Li
     return ds_images_paths, ds_annotations_paths
 
 
+def remove_sly_tag_name_if_not_unique(sly_meta, new_meta):
+    for s_tag in sly_meta["tags"]:
+        for n_tag in new_meta["tags"]:
+            if s_tag["name"] == n_tag["name"]:
+                sly_meta["tags"].remove(s_tag)
+                sly.logger.warning(
+                    f"There was tag [{s_tag['name']}] in Supervisely meta with the same name as the grouping tag on the import! Supervisely tag was replaced with import tag. If you want to separate them, you need to manually correct the annotation and meta .json files, or select a different grouping tag on import."
+                )
+
+
 def check_unique_name(lst: List[Dict[str, str]]) -> None:
     """
     Checks if the 'name' key in a list of dictionaries has only unique values.
@@ -160,12 +176,12 @@ def check_image_project_structure(root_dir: str, with_anns: bool, img_ext: str) 
                             f"Unexpected file '{data_file.name}' in 'img' directory: {img_dir}"
                         )
                 else:
-                    if data_file.is_file() and not data_file.name.endswith(img_ext):
+                    if data_file.is_file() and not data_file.name.lower().endswith(img_ext):
                         g.my_app.logger.warn(
                             f"Unexpected file '{data_file.name}' in 'img' directory: {img_dir}"
                         )
             for json_file in os.scandir(ann_dir):
-                if json_file.is_file() and not json_file.name.endswith(".json"):
+                if json_file.is_file() and not json_file.name.lower().endswith(".json"):
                     g.my_app.logger.warn(
                         f"Unexpected file '{json_file.name}' in 'ann' directory: {ann_dir}"
                     )
@@ -175,7 +191,7 @@ def check_image_project_structure(root_dir: str, with_anns: bool, img_ext: str) 
                 continue
             if check_extension_in_folder(dataset_dir.path, img_ext):
                 for data_file in os.scandir(dataset_dir.path):
-                    if data_file.is_file() and not data_file.name.endswith(img_ext):
+                    if data_file.is_file() and not data_file.name.lower().endswith(img_ext):
                         g.my_app.logger.warn(
                             f"Unexpected file '{data_file.name}' in directory: {dataset_dir.path}"
                         )
@@ -188,7 +204,7 @@ def check_image_project_structure(root_dir: str, with_anns: bool, img_ext: str) 
 
 def check_extension_in_folder(folder_path: str, extension: str) -> bool:
     for item in os.scandir(folder_path):
-        if item.is_file() and item.path.endswith(extension):
+        if item.is_file() and item.path.lower().endswith(extension):
             return True
     return False
 
@@ -285,39 +301,107 @@ def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) ->
     return project_path
 
 
+def find_frame_axis(pixel_data: np.ndarray, frames: int):
+    for axis in range(len(pixel_data.shape)):
+        if pixel_data.shape[axis] == frames:
+            return axis
+    raise ValueError("Unable to recognize the frame axis for splitting a set of images")
+
+
+def create_pixel_data_set(dcm: FileDataset, frame_axis):
+    if frame_axis == 0:
+        pixel_array = np.transpose(dcm.pixel_array, (2, 1, 0))
+    elif frame_axis == 1:
+        pixel_array = np.transpose(dcm.pixel_array, (2, 0, 1))
+    else:
+        pixel_array = dcm.pixel_array
+    frame_axis = 2
+    list_of_images = np.split(pixel_array, int(dcm.NumberOfFrames), axis=frame_axis)
+    return list_of_images, frame_axis
+
+
+def get_nrrd_header(image_path: str, frame_axis: int = 2):
+    _, meta = sly.volume.read_dicom_serie_volume([image_path], False)
+    dimensions: Dict = meta.get("dimensionsIJK")
+    header = {
+        "type": "float",
+        "sizes": [dimensions.get("x"), dimensions.get("y")],
+        "dimension": 2,
+        "space": "right-anterior-superior",
+    }
+
+    if frame_axis == 0:
+        spacing = meta["spacing"][1:]
+        header["space directions"] = [[spacing[0], 0], [0, spacing[1]]]
+    if frame_axis == 1:
+        spacing = meta["spacing"][0::2]
+        header["space directions"] = [[spacing[0], 0], [0, spacing[1]]]
+    if frame_axis == 2:
+        spacing = meta["spacing"][0:2]
+        header["space directions"] = [[spacing[0], 0], [0, spacing[1]]]
+    return header
+
+
 def dcm2nrrd(
     image_path: str,
     group_tag_name: str,
 ) -> Tuple[str, str, sly.Annotation]:
-    """Converts DICOM data to nrrd format and returns image path, image name, and image annotation."""
+    """Converts DICOM data to nrrd format and returns image paths, image names, and image annotations."""
     dcm = pydicom.read_file(image_path)
     dcm_tags = create_dcm_tags(dcm)
+    pixel_data_list = [dcm.pixel_array]
 
-    pixel_data = dcm.pixel_array
-    pixel_data = sly.image.rotate(img=pixel_data, degrees_angle=270)
-    original_name = get_file_name_with_ext(image_path)
-    image_name = f"{original_name}.nrrd"
-    save_path = os.path.join(os.path.dirname(image_path), image_name)
-    nrrd.write(save_path, pixel_data)
+    if len(dcm.pixel_array.shape) == 3:
+        try:
+            frames = int(dcm.NumberOfFrames)
+        except Exception:
+            raise NotImplementedError(
+                f"Can't get frames from dcm meta. This type of data is not supported"
+            )
+        frame_axis = find_frame_axis(dcm.pixel_array, frames)
+        pixel_data_list, frame_axis = create_pixel_data_set(dcm, frame_axis)
+        header = get_nrrd_header(image_path, frame_axis)
+    else:
+        frames = 1
+        header = get_nrrd_header(image_path)
 
-    try:
-        group_tag_value = str(dcm[group_tag_name].value)
-        group_tag = {"name": group_tag_name, "value": group_tag_value}
-        ann = create_ann_with_tags(
-            save_path,
-            group_tag,
-            dcm_tags,
-        )
-    except:
-        g.my_app.logger.warn(
-            f"Couldn't find key: '{group_tag_name}' in file's metadata: '{original_name}'"
-        )
-        img_size = nrrd.read_header(save_path)["sizes"].tolist()[::-1]
-        ann = sly.Annotation(img_size=img_size)
-        if dcm_tags is not None:
-            ann = ann.add_tags(sly.TagCollection(dcm_tags))
+    save_paths = []
+    image_names = []
+    anns = []
+    frames_list = [f"{i:0{len(str(frames))}d}" for i in range(1, frames + 1)]
 
-    return save_path, image_name, ann
+    for pixel_data, frame_number in zip(pixel_data_list, frames_list):
+        original_name = get_file_name_with_ext(image_path)
+
+        if frames == 1:
+            pixel_data = sly.image.rotate(img=pixel_data, degrees_angle=270)
+            image_name = f"{original_name}.nrrd"
+        else:
+            pixel_data = np.squeeze(pixel_data, frame_axis)
+            image_name = f"{frame_number}_{original_name}.nrrd"
+
+        save_path = os.path.join(os.path.dirname(image_path), image_name)
+        nrrd.write(save_path, pixel_data, header)
+        save_paths.append(save_path)
+        image_names.append(image_name)
+        try:
+            group_tag_value = str(dcm[group_tag_name].value)
+            group_tag = {"name": group_tag_name, "value": group_tag_value}
+            ann = create_ann_with_tags(
+                save_path,
+                group_tag,
+                dcm_tags,
+            )
+        except:
+            g.my_app.logger.warn(
+                f"Couldn't find key: '{group_tag_name}' in file's metadata: '{original_name}'"
+            )
+            img_size = nrrd.read_header(save_path)["sizes"].tolist()[::-1]
+            ann = sly.Annotation(img_size=img_size)
+            if dcm_tags is not None:
+                ann = ann.add_tags(sly.TagCollection(dcm_tags))
+        anns.append(ann)
+    return save_paths, image_names, anns
 
 
 def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
@@ -349,7 +433,6 @@ def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
 
     dcm_sly_tags = []
     for dcm_tag_name, dcm_tag_value in tags_from_dcm:
-
         dcm_tag_meta = g.project_meta.get_tag_meta(dcm_tag_name)
         if dcm_tag_meta is None:
             dcm_tag_meta = sly.TagMeta(dcm_tag_name, sly.TagValueType.ANY_STRING)
