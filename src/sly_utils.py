@@ -54,7 +54,10 @@ def import_images(
 
         if g.WITH_ANNS:
             ann = sly.Annotation.load_json_file(annotation_path, g.project_meta_from_sly_format)
-            anns.append(ann.merge(anns_from_dcm))
+
+            for ann_dcm in anns_from_dcm:
+                ann = ann.merge(ann_dcm)
+            anns.append(ann)
         else:
             anns.extend(anns_from_dcm)
 
@@ -67,8 +70,10 @@ def import_images(
     # Merge meta from annotations (if supervisely format) with other tags
     if g.WITH_ANNS:
         _meta_dct = g.project_meta_from_sly_format.to_json()
-        _meta_dct["tags"] += g.project_meta.to_json()["tags"]
-        check_unique_name(_meta_dct["tags"])
+        _new_meta_cct = g.project_meta.to_json()
+        remove_sly_tag_name_if_not_unique(_meta_dct, _new_meta_cct)
+        _meta_dct["tags"] += _new_meta_cct["tags"]
+        check_unique_name(_meta_dct["tags"])  # left for emergency cases
     else:
         _meta_dct = g.project_meta.to_json()
 
@@ -116,6 +121,16 @@ def get_paths(dataset_path: str, with_anns: bool = False) -> Tuple[List[str], Li
         ds_annotations_paths = [None for _ in ds_images_paths]
 
     return ds_images_paths, ds_annotations_paths
+
+
+def remove_sly_tag_name_if_not_unique(sly_meta, new_meta):
+    for s_tag in sly_meta["tags"]:
+        for n_tag in new_meta["tags"]:
+            if s_tag["name"] == n_tag["name"]:
+                sly_meta["tags"].remove(s_tag)
+                sly.logger.warning(
+                    f"There was tag [{s_tag['name']}] in Supervisely meta with the same name as the grouping tag on the import! Supervisely tag was replaced with import tag. If you want to separate them, you need to manually correct the annotation and meta .json files, or select a different grouping tag on import."
+                )
 
 
 def check_unique_name(lst: List[Dict[str, str]]) -> None:
@@ -290,7 +305,7 @@ def find_frame_axis(pixel_data: np.ndarray, frames: int):
     for axis in range(len(pixel_data.shape)):
         if pixel_data.shape[axis] == frames:
             return axis
-    raise ValueError("Can't recognize frames axis")
+    raise ValueError("Unable to recognize the frame axis for splitting a set of images")
 
 
 def create_pixel_data_set(dcm: FileDataset, frame_axis):
@@ -305,9 +320,9 @@ def create_pixel_data_set(dcm: FileDataset, frame_axis):
     return list_of_images, frame_axis
 
 
-def get_nrrd_header(image_path, frame_axis):
+def get_nrrd_header(image_path: str, frame_axis: int = 2):
     _, meta = sly.volume.read_dicom_serie_volume([image_path], False)
-    dimensions = meta.get("dimensionsIJK")
+    dimensions: Dict = meta.get("dimensionsIJK")
     header = {
         "type": "float",
         "sizes": [dimensions.get("x"), dimensions.get("y")],
@@ -331,7 +346,7 @@ def dcm2nrrd(
     image_path: str,
     group_tag_name: str,
 ) -> Tuple[str, str, sly.Annotation]:
-    """Converts DICOM data to nrrd format and returns image path, image name, and image annotation."""
+    """Converts DICOM data to nrrd format and returns image paths, image names, and image annotations."""
     dcm = pydicom.read_file(image_path)
     dcm_tags = create_dcm_tags(dcm)
     pixel_data_list = [dcm.pixel_array]
@@ -345,18 +360,17 @@ def dcm2nrrd(
             )
         frame_axis = find_frame_axis(dcm.pixel_array, frames)
         pixel_data_list, frame_axis = create_pixel_data_set(dcm, frame_axis)
-        header = get_nrrd_header(image_path, 2)
+        header = get_nrrd_header(image_path, frame_axis)
     else:
-        header = None
         frames = 1
+        header = get_nrrd_header(image_path)
+
     save_paths = []
     image_names = []
     anns = []
+    frames_list = [f"{i:0{len(str(frames))}d}" for i in range(1, frames + 1)]
 
-    for pixel_data, frame_number in zip(
-        pixel_data_list,
-        [f"{i:0{len(str(frames))}d}" for i in range(frames)],
-    ):
+    for pixel_data, frame_number in zip(pixel_data_list, frames_list):
         original_name = get_file_name_with_ext(image_path)
 
         if frames == 1:
