@@ -52,7 +52,8 @@ Learn more how to deal with images groups in [Import images groups](https://ecos
 
 Archive structure:
 
-1. Without annotations (by default)
+1. Without annotations (by default)<br>
+ℹ️ You can download the archive with data example [here](https://github.com/supervisely-ecosystem/import-dicom-studies/files/12557627/my_dicom_studies_project.zip).
 
 ```text
 .
