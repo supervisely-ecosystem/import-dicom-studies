@@ -290,7 +290,8 @@ def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) ->
             local_save_path=save_archive_path,
             progress_cb=progress_cb,
         )
-        shutil.unpack_archive(save_archive_path, save_path)
+        sly.fs.unpack_archive(save_archive_path, save_path, remove_junk=True)
+        # shutil.unpack_archive(save_archive_path, save_path)
         silent_remove(save_archive_path)
         if len(os.listdir(save_path)) > 1:
             g.my_app.logger.error("There must be only 1 project directory in the archive")
