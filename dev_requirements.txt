@@ -5,3 +5,6 @@ supervisely[apps]==6.72.122
 gdcm==1.1
 pylibjpeg==1.4.0
 pylibjpeg-libjpeg==1.3.1
+
+
+scikit-image

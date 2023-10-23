@@ -34,9 +34,16 @@ def import_dicom_studies(
 
     ds_progress = sly.Progress(message="Importing Datasets", total_cnt=len(datasets_paths))
     for dataset_path in datasets_paths:
-        f.import_dataset(api, dataset_path)
+        try:
+            f.import_dataset(api, dataset_path)
+        except FileNotFoundError as e:
+            if str(e) == "Nothing to import":
+                sly.logger.warning(f"Skipping dataset '{dataset_path}', nothing to import")
+                continue
         ds_progress.iter_done_report()
-
+    if api.project.get_datasets_count(project.id) == 0:
+        api.project.remove(project.id)
+        sly.logger.warning("The project has no datasets and will be removed from workspace")
     g.my_app.stop()
 
 
