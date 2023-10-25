@@ -364,6 +364,9 @@ def dcm2nrrd(
     if len(dcm.pixel_array.shape) == 3:
         if dcm.pixel_array.shape[0] == 1 and not hasattr(dcm, "NumberOfFrames"):
             frames = 1
+            pixel_data_list = [
+                dcm.pixel_array.reshape((dcm.pixel_array.shape[1], dcm.pixel_array.shape[2]))
+            ]
             header = get_nrrd_header(image_path)
         else:
             try:
