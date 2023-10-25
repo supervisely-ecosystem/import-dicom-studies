@@ -5,6 +5,8 @@ import supervisely as sly
 import sly_globals as g
 import sly_utils as f
 
+from supervisely.io.fs import remove_dir
+
 
 @g.my_app.callback("import-dicom-studies")
 @sly.timeit
@@ -46,6 +48,7 @@ def import_dicom_studies(
         sly.logger.warning(
             f"The project '{project.name}' has no datasets and will be removed from workspace"
         )
+    remove_dir(project_dir)
     g.my_app.stop()
 
 
