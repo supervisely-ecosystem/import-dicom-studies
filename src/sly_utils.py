@@ -362,15 +362,19 @@ def dcm2nrrd(
     pixel_data_list = [dcm.pixel_array]
 
     if len(dcm.pixel_array.shape) == 3:
-        try:
-            frames = int(dcm.NumberOfFrames)
-        except AttributeError as e:
-            if str(e) == "'FileDataset' object has no attribute 'NumberOfFrames'":
-                e.args = ("can't get 'NumberOfFrames' from dcm meta.",)
-                raise e
-        frame_axis = find_frame_axis(dcm.pixel_array, frames)
-        pixel_data_list, frame_axis = create_pixel_data_set(dcm, frame_axis)
-        header = get_nrrd_header(image_path, frame_axis)
+        if dcm.pixel_array.shape[0] == 1 and not hasattr(dcm, "NumberOfFrames"):
+            frames = 1
+            header = get_nrrd_header(image_path)
+        else:
+            try:
+                frames = int(dcm.NumberOfFrames)
+            except AttributeError as e:
+                if str(e) == "'FileDataset' object has no attribute 'NumberOfFrames'":
+                    e.args = ("can't get 'NumberOfFrames' from dcm meta.",)
+                    raise e
+            frame_axis = find_frame_axis(dcm.pixel_array, frames)
+            pixel_data_list, frame_axis = create_pixel_data_set(dcm, frame_axis)
+            header = get_nrrd_header(image_path, frame_axis)
     elif len(dcm.pixel_array.shape) == 2:
         frames = 1
         header = get_nrrd_header(image_path)

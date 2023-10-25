@@ -43,7 +43,9 @@ def import_dicom_studies(
         ds_progress.iter_done_report()
     if api.project.get_datasets_count(project.id) == 0:
         api.project.remove(project.id)
-        sly.logger.warning("The project has no datasets and will be removed from workspace")
+        sly.logger.warning(
+            f"The project '{project.name}' has no datasets and will be removed from workspace"
+        )
     g.my_app.stop()
 
 
