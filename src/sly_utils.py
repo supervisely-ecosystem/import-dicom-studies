@@ -45,10 +45,15 @@ def import_images(
     anns = []
 
     for image_path, annotation_path in zip(batch_imgs, batch_anns):
-        image_paths, image_names, anns_from_dcm = dcm2nrrd(
-            image_path=image_path,
-            group_tag_name=g.GROUP_TAG_NAME,
-        )
+        try:
+            image_paths, image_names, anns_from_dcm = dcm2nrrd(
+                image_path=image_path,
+                group_tag_name=g.GROUP_TAG_NAME,
+            )
+        except Exception as e:
+            sly.logger.warning(f"File '{image_path}' will be skipped due to: {str(e)}")
+            continue
+
         img_paths.extend(image_paths)
         img_names.extend(image_names)
 
@@ -60,6 +65,10 @@ def import_images(
             anns.append(ann)
         else:
             anns.extend(anns_from_dcm)
+
+    if len(img_paths) == 0:
+        api.dataset.remove(dataset.id)
+        raise FileNotFoundError("Nothing to import")
 
     # Upload the images and annotations to the project
     dst_image_infos = api.image.upload_paths(
@@ -353,18 +362,29 @@ def dcm2nrrd(
     pixel_data_list = [dcm.pixel_array]
 
     if len(dcm.pixel_array.shape) == 3:
-        try:
-            frames = int(dcm.NumberOfFrames)
-        except Exception:
-            raise NotImplementedError(
-                f"Can't get frames from dcm meta. This type of data is not supported"
-            )
-        frame_axis = find_frame_axis(dcm.pixel_array, frames)
-        pixel_data_list, frame_axis = create_pixel_data_set(dcm, frame_axis)
-        header = get_nrrd_header(image_path, frame_axis)
-    else:
+        if dcm.pixel_array.shape[0] == 1 and not hasattr(dcm, "NumberOfFrames"):
+            frames = 1
+            pixel_data_list = [
+                dcm.pixel_array.reshape((dcm.pixel_array.shape[1], dcm.pixel_array.shape[2]))
+            ]
+            header = get_nrrd_header(image_path)
+        else:
+            try:
+                frames = int(dcm.NumberOfFrames)
+            except AttributeError as e:
+                if str(e) == "'FileDataset' object has no attribute 'NumberOfFrames'":
+                    e.args = ("can't get 'NumberOfFrames' from dcm meta.",)
+                    raise e
+            frame_axis = find_frame_axis(dcm.pixel_array, frames)
+            pixel_data_list, frame_axis = create_pixel_data_set(dcm, frame_axis)
+            header = get_nrrd_header(image_path, frame_axis)
+    elif len(dcm.pixel_array.shape) == 2:
         frames = 1
         header = get_nrrd_header(image_path)
+    else:
+        raise NotImplementedError(
+            f"this type of dcm data is not supported, pixel_array.shape = {len(dcm.pixel_array.shape)}"
+        )
 
     save_paths = []
     image_names = []
@@ -376,6 +396,7 @@ def dcm2nrrd(
 
         if frames == 1:
             pixel_data = sly.image.rotate(img=pixel_data, degrees_angle=270)
+            pixel_data = sly.image.fliplr(pixel_data)
             image_name = f"{original_name}.nrrd"
         else:
             pixel_data = np.squeeze(pixel_data, frame_axis)
