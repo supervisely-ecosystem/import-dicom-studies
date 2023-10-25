@@ -393,6 +393,7 @@ def dcm2nrrd(
 
         if frames == 1:
             pixel_data = sly.image.rotate(img=pixel_data, degrees_angle=270)
+            pixel_data = sly.image.fliplr(pixel_data)
             image_name = f"{original_name}.nrrd"
         else:
             pixel_data = np.squeeze(pixel_data, frame_axis)
