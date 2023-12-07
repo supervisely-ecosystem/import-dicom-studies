@@ -54,6 +54,7 @@ WITH_ANNS: bool = bool(strtobool(os.environ.get("modal.state.withAnns")))
 STORAGE_DIR: str = my_app.data_dir
 mkdir(STORAGE_DIR, True)
 
+SLY_FORMAT_DOCS = "https://docs.supervise.ly/data-organization/00_ann_format_navi"
 project_id: int = None
 project_meta: sly.ProjectMeta = sly.ProjectMeta()
 project_meta_from_sly_format: sly.ProjectMeta = sly.ProjectMeta()

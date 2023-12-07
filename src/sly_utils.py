@@ -107,7 +107,8 @@ def get_paths(dataset_path: str, with_anns: bool = False) -> Tuple[List[str], Li
         # Learn more here: https://docs.supervise.ly/data-organization/00_ann_format_navi
         if "img" not in subfolders or "ann" not in subfolders:
             raise ValueError(
-                "The 'img' and/or 'ann' folders do not exist in the dataset path. Learn more about supervisely format here: https://docs.supervise.ly/data-organization/00_ann_format_navi"
+                "The 'img' and/or 'ann' folders do not exist in the dataset path. "
+                f"Learn more about <a href='{g.SLY_FORMAT_DOCS}'>Supervisely format</a>."
             )
 
         img_dirname, ann_dirname = join(dataset_path, "img"), join(dataset_path, "ann")
@@ -162,24 +163,26 @@ def check_image_project_structure(root_dir: str, with_anns: bool, img_ext: str) 
     if with_anns:
         meta_file = join(root_dir, "meta.json")
 
+        if not exists(meta_file):
+            raise Exception(
+                f"Missing meta.json file. Learn more about <a href='{g.SLY_FORMAT_DOCS}'>Supervisely format</a>."
+            )
         for dataset_dir in os.scandir(root_dir):
             if not dataset_dir.is_dir():
-                if not exists(meta_file):
-                    raise ValueError(
-                        f"Missing meta.json file. Instead got: {dataset_dir.path}. Learn more about supervisely format here: https://docs.supervise.ly/data-organization/00_ann_format_navi"
-                    )
                 continue
 
             img_dir = join(dataset_dir.path, "img")
             ann_dir = join(dataset_dir.path, "ann")
 
             if not exists(img_dir):
-                raise ValueError(
-                    f"Missing 'img' directory in dataset directory: {dataset_dir.path}. Learn more about supervisely format here: https://docs.supervise.ly/data-organization/00_ann_format_navi"
+                raise Exception(
+                    f"Missing 'img' directory in dataset directory: {dataset_dir.path}. "
+                    f"Learn more about <a href='{g.SLY_FORMAT_DOCS}'>Supervisely format</a>."
                 )
             if not exists(ann_dir):
-                raise ValueError(
-                    f"Missing 'ann' directory in dataset directory: {dataset_dir.path}. Learn more about supervisely format here: https://docs.supervise.ly/data-organization/00_ann_format_navi"
+                raise Exception(
+                    f"Missing 'ann' directory in dataset directory: {dataset_dir.path}. "
+                    f"Learn more about <a href='{g.SLY_FORMAT_DOCS}'>Supervisely format</a>."
                 )
             for data_file in os.scandir(img_dir):
                 if img_ext == ".dcm":
