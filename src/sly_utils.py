@@ -281,25 +281,6 @@ def handle_input_path(api: sly.Api) -> str:
                 sly.logger.info("Folder mode is selected, but archive file is uploaded.")
                 sly.logger.info("Switching to file mode.")
                 g.INPUT_DIR, g.INPUT_FILE = None, join(g.INPUT_DIR, listdir[0])
-        elif g.INPUT_FILE:
-            if not is_archive(g.INPUT_FILE, local=False):
-                sly.logger.info(
-                    "File mode is selected, but file is not .zip, .tar.gz or .tar archive."
-                )
-                if g.INPUT_FILE.strip("/").startswith("import/import-dicom-studies"):
-                    path = Path(g.INPUT_FILE.strip("/"))
-                    possible_project_dir = f"/{'/'.join(path.parts[:3])}/"
-                    files = api.file.listdir(g.TEAM_ID, possible_project_dir)
-                    if len(files) == 1 and api.file.dir_exists(g.TEAM_ID, files[0]):
-                        possible_project_dir = join(possible_project_dir, files[0])
-                    g.INPUT_DIR, g.INPUT_FILE = possible_project_dir, None
-                    return
-
-                parent_dir = dirname(normpath(g.INPUT_FILE))
-                files = api.file.listdir(g.TEAM_ID, parent_dir)
-                if all([sly.fs.get_file_ext(f) in [".dcm", ".nrrd", ".dicom"] for f in files]):
-                    g.INPUT_DIR, g.INPUT_FILE = parent_dir, None
-
 
 def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) -> str:
     """Download data from remote directory in Team Files."""
@@ -327,6 +308,7 @@ def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) ->
             local_save_path=project_path,
             progress_cb=progress_cb,
         )
+        sly.fs.remove_junk_from_dir(project_path)
 
     elif g.INPUT_FILE is not None:
         if g.IS_ON_AGENT:
@@ -350,8 +332,10 @@ def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) ->
             local_save_path=save_archive_path,
             progress_cb=progress_cb,
         )
-        sly.fs.unpack_archive(save_archive_path, save_path, remove_junk=True)
-        # shutil.unpack_archive(save_archive_path, save_path)
+        if is_archive(save_archive_path):
+            sly.fs.unpack_archive(save_archive_path, save_path, remove_junk=True)
+        else:
+            raise Exception("Incorrect input data structure. Read more in the app description.")
         silent_remove(save_archive_path)
         if len(os.listdir(save_path)) > 1:
             g.my_app.logger.error("There must be only 1 project directory in the archive")
