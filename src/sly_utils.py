@@ -200,6 +200,13 @@ def check_image_project_structure(root_dir: str, with_anns: bool, img_ext: str) 
                     g.my_app.logger.warn(
                         f"Unexpected file '{json_file.name}' in 'ann' directory: {ann_dir}"
                     )
+    elif all([is_dicom_file(item.path) for item in os.scandir(root_dir)]):
+        g.my_app.logger.warn(f"Not found dataset directories in the project directory: {root_dir}")
+        g.my_app.logger.info("Dataset name will be 'ds0'")
+        parent_dir = dirname(normpath(root_dir))
+        os.rename(root_dir, join(parent_dir, "ds0"))
+        os.mkdir(root_dir)
+        os.rename(join(parent_dir, "ds0"), join(root_dir, "ds0"))
     else:
         for dataset_dir in os.scandir(root_dir):
             if not dataset_dir.is_dir():
@@ -284,6 +291,13 @@ def handle_input_path(api: sly.Api) -> str:
                 sly.logger.info("Folder mode is selected, but archive file is uploaded.")
                 sly.logger.info("Switching to file mode.")
                 g.INPUT_DIR, g.INPUT_FILE = None, join(g.INPUT_DIR, listdir[0])
+        elif g.INPUT_FILE:
+            if not is_archive(g.INPUT_FILE, local=False):
+                if g.INPUT_FILE.lower().endswith(".dcm"):
+                    sly.logger.info("File mode is selected, but uploaded file is not archive.")
+                    sly.logger.info("Switching to folder mode.")
+                    g.INPUT_FILE, g.INPUT_DIR = None, dirname(g.INPUT_FILE)
+
 
 def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) -> str:
     """Download data from remote directory in Team Files."""
