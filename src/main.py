@@ -44,9 +44,10 @@ def import_dicom_studies(
         ds_progress.iter_done_report()
     if api.project.get_datasets_count(project.id) == 0:
         api.project.remove(project.id)
-        title = f"'{project.name}' project is empty. Read the app overview."
-        description = "The project will be removed from workspace."
+        title = f"Failed to import DICOM data."
+        description = "Read the app overview to prepare ypur data for import."
         api.task.set_output_error(task_id, title=title, description=description)
+        app_logger.warn(f"{title} {description}")
     remove_dir(project_dir)
     g.my_app.stop()
 
