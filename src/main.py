@@ -45,7 +45,7 @@ def import_dicom_studies(
     if api.project.get_datasets_count(project.id) == 0:
         api.project.remove(project.id)
         title = f"Failed to import DICOM data."
-        description = "Read the app overview to prepare ypur data for import."
+        description = "Read the app overview to prepare your data for import."
         api.task.set_output_error(task_id, title=title, description=description)
         app_logger.warn(f"{title} {description}")
     remove_dir(project_dir)
