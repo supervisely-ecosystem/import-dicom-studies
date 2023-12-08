@@ -1,11 +1,10 @@
 import os
 
 import supervisely as sly
+from supervisely.io.fs import remove_dir
 
 import sly_globals as g
 import sly_utils as f
-
-from supervisely.io.fs import remove_dir
 
 
 @g.my_app.callback("import-dicom-studies")
@@ -45,9 +44,10 @@ def import_dicom_studies(
         ds_progress.iter_done_report()
     if api.project.get_datasets_count(project.id) == 0:
         api.project.remove(project.id)
-        sly.logger.warning(
-            f"The project '{project.name}' has no datasets and will be removed from workspace"
-        )
+        title = f"Failed to import DICOM data."
+        description = "Read the app overview to prepare your data for import."
+        api.task.set_output_error(task_id, title=title, description=description)
+        app_logger.warn(f"{title} {description}")
     remove_dir(project_dir)
     g.my_app.stop()
 

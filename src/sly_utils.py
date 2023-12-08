@@ -1,17 +1,24 @@
 import functools
 import json
 import os
-import shutil
+import tarfile
+import zipfile
 from functools import partial
+from os.path import basename, dirname, exists, join, normpath
 from pathlib import Path
 from typing import Callable, Dict, List, Tuple
 
 import nrrd
+import numpy as np
 import pydicom
 import supervisely as sly
 from pydicom import FileDataset
-from supervisely.io.fs import file_exists, get_file_name_with_ext, silent_remove
-import numpy as np
+from supervisely.io.fs import (
+    file_exists,
+    get_file_ext,
+    get_file_name_with_ext,
+    silent_remove,
+)
 
 import sly_globals as g
 
@@ -19,7 +26,7 @@ import sly_globals as g
 def import_dataset(api: sly.Api, dataset_path: str) -> None:
     """Imports a single dataset into the project."""
     # Create a new dataset in the project
-    dataset_name = os.path.basename(os.path.normpath(dataset_path))
+    dataset_name = basename(normpath(dataset_path))
     dataset_info = api.dataset.create(
         project_id=g.project_id, name=dataset_name, change_name_if_conflict=True
     )
@@ -100,30 +107,27 @@ def get_paths(dataset_path: str, with_anns: bool = False) -> Tuple[List[str], Li
         # Learn more here: https://docs.supervise.ly/data-organization/00_ann_format_navi
         if "img" not in subfolders or "ann" not in subfolders:
             raise ValueError(
-                "The 'img' and/or 'ann' folders do not exist in the dataset path. Learn more about supervisely format here: https://docs.supervise.ly/data-organization/00_ann_format_navi"
+                "The 'img' and/or 'ann' folders do not exist in the dataset path. "
+                f"Learn more about <a href='{g.SLY_FORMAT_DOCS}'>Supervisely format</a>."
             )
 
-        img_dirname, ann_dirname = os.path.join(dataset_path, "img"), os.path.join(
-            dataset_path, "ann"
-        )
+        img_dirname, ann_dirname = join(dataset_path, "img"), join(dataset_path, "ann")
         dataset_path = img_dirname
 
     ds_images_paths = sorted(
         [
-            os.path.join(dataset_path, item)
+            join(dataset_path, item)
             for item in os.listdir(dataset_path)
-            if file_exists(os.path.join(dataset_path, item))
-            and is_dicom_file(os.path.join(dataset_path, item))
+            if file_exists(join(dataset_path, item)) and is_dicom_file(join(dataset_path, item))
         ]
     )
 
     if with_anns:
         ds_annotations_paths = sorted(
             [
-                os.path.join(ann_dirname, item)
+                join(ann_dirname, item)
                 for item in os.listdir(ann_dirname)
-                if file_exists(os.path.join(ann_dirname, item))
-                and is_json_file(os.path.join(ann_dirname, item))
+                if file_exists(join(ann_dirname, item)) and is_json_file(join(ann_dirname, item))
             ]
         )
     else:
@@ -157,26 +161,28 @@ def check_unique_name(lst: List[Dict[str, str]]) -> None:
 
 def check_image_project_structure(root_dir: str, with_anns: bool, img_ext: str) -> None:
     if with_anns:
-        meta_file = os.path.join(root_dir, "meta.json")
+        meta_file = join(root_dir, "meta.json")
 
+        if not exists(meta_file):
+            raise Exception(
+                f"Missing meta.json file. Learn more about <a href='{g.SLY_FORMAT_DOCS}'>Supervisely format</a>."
+            )
         for dataset_dir in os.scandir(root_dir):
             if not dataset_dir.is_dir():
-                if not os.path.exists(meta_file):
-                    raise ValueError(
-                        f"Missing meta.json file. Instead got: {dataset_dir.path}. Learn more about supervisely format here: https://docs.supervise.ly/data-organization/00_ann_format_navi"
-                    )
                 continue
 
-            img_dir = os.path.join(dataset_dir.path, "img")
-            ann_dir = os.path.join(dataset_dir.path, "ann")
+            img_dir = join(dataset_dir.path, "img")
+            ann_dir = join(dataset_dir.path, "ann")
 
-            if not os.path.exists(img_dir):
-                raise ValueError(
-                    f"Missing 'img' directory in dataset directory: {dataset_dir.path}. Learn more about supervisely format here: https://docs.supervise.ly/data-organization/00_ann_format_navi"
+            if not exists(img_dir):
+                raise Exception(
+                    f"Missing 'img' directory in dataset directory: {dataset_dir.path}. "
+                    f"Learn more about <a href='{g.SLY_FORMAT_DOCS}'>Supervisely format</a>."
                 )
-            if not os.path.exists(ann_dir):
-                raise ValueError(
-                    f"Missing 'ann' directory in dataset directory: {dataset_dir.path}. Learn more about supervisely format here: https://docs.supervise.ly/data-organization/00_ann_format_navi"
+            if not exists(ann_dir):
+                raise Exception(
+                    f"Missing 'ann' directory in dataset directory: {dataset_dir.path}. "
+                    f"Learn more about <a href='{g.SLY_FORMAT_DOCS}'>Supervisely format</a>."
                 )
             for data_file in os.scandir(img_dir):
                 if img_ext == ".dcm":
@@ -194,6 +200,13 @@ def check_image_project_structure(root_dir: str, with_anns: bool, img_ext: str) 
                     g.my_app.logger.warn(
                         f"Unexpected file '{json_file.name}' in 'ann' directory: {ann_dir}"
                     )
+    elif all([is_dicom_file(item.path) for item in os.scandir(root_dir)]):
+        g.my_app.logger.warn(f"Not found dataset directories in the project directory: {root_dir}")
+        g.my_app.logger.info("Dataset name will be 'ds0'")
+        parent_dir = dirname(normpath(root_dir))
+        os.rename(root_dir, join(parent_dir, "ds0"))
+        os.mkdir(root_dir)
+        os.rename(join(parent_dir, "ds0"), join(root_dir, "ds0"))
     else:
         for dataset_dir in os.scandir(root_dir):
             if not dataset_dir.is_dir():
@@ -261,12 +274,43 @@ def is_json_file(file_path):
         return False
 
 
+def is_archive(path, local=True):
+    if local and tarfile.is_tarfile(path):
+        return True
+    elif local and zipfile.is_zipfile(path):
+        return True
+    return get_file_ext(path) in [".zip", ".tar"] or path.endswith(".tar.gz")
+
+
+def handle_input_path(api: sly.Api) -> str:
+    """Handle input path."""
+    if not g.IS_ON_AGENT:
+        if g.INPUT_DIR:
+            listdir = api.file.listdir(g.TEAM_ID, g.INPUT_DIR)
+            if len(listdir) == 1 and is_archive(listdir[0], local=False):
+                sly.logger.info("Folder mode is selected, but archive file is uploaded.")
+                sly.logger.info("Switching to file mode.")
+                g.INPUT_DIR, g.INPUT_FILE = None, join(g.INPUT_DIR, listdir[0])
+        elif g.INPUT_FILE:
+            if not is_archive(g.INPUT_FILE, local=False):
+                if g.INPUT_FILE.lower().endswith(".dcm"):
+                    sly.logger.info("File mode is selected, but uploaded file is not archive.")
+                    sly.logger.info("Switching to folder mode.")
+                    g.INPUT_FILE, g.INPUT_DIR = None, dirname(g.INPUT_FILE)
+
+
 def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) -> str:
     """Download data from remote directory in Team Files."""
+    handle_input_path(api)
     project_path = None
     if g.INPUT_DIR is not None:
+        if g.IS_ON_AGENT:
+            agent_id, cur_files_path = api.file.parse_agent_id_and_path(g.INPUT_DIR)
+        else:
+            cur_files_path = g.INPUT_DIR
+
         remote_path = g.INPUT_DIR
-        project_path = os.path.join(save_path, os.path.basename(os.path.normpath(remote_path)))
+        project_path = join(save_path, basename(normpath(cur_files_path)))
         sizeb = api.file.get_directory_size(g.TEAM_ID, remote_path)
         progress_cb = get_progress_cb(
             api=api,
@@ -281,10 +325,16 @@ def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) ->
             local_save_path=project_path,
             progress_cb=progress_cb,
         )
+        sly.fs.remove_junk_from_dir(project_path)
 
     elif g.INPUT_FILE is not None:
+        if g.IS_ON_AGENT:
+            agent_id, cur_files_path = api.file.parse_agent_id_and_path(g.INPUT_FILE)
+        else:
+            cur_files_path = g.INPUT_FILE
+
         remote_path = g.INPUT_FILE
-        save_archive_path = os.path.join(save_path, get_file_name_with_ext(remote_path))
+        save_archive_path = join(save_path, get_file_name_with_ext(normpath(cur_files_path)))
         sizeb = api.file.get_info_by_path(g.TEAM_ID, remote_path).sizeb
         progress_cb = get_progress_cb(
             api=api,
@@ -299,15 +349,17 @@ def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) ->
             local_save_path=save_archive_path,
             progress_cb=progress_cb,
         )
-        sly.fs.unpack_archive(save_archive_path, save_path, remove_junk=True)
-        # shutil.unpack_archive(save_archive_path, save_path)
+        if is_archive(save_archive_path):
+            sly.fs.unpack_archive(save_archive_path, save_path, remove_junk=True)
+        else:
+            raise Exception("Incorrect input data structure. Read more in the app description.")
         silent_remove(save_archive_path)
         if len(os.listdir(save_path)) > 1:
             g.my_app.logger.error("There must be only 1 project directory in the archive")
             raise Exception("There must be only 1 project directory in the archive")
 
         project_name = os.listdir(save_path)[0]
-        project_path = os.path.join(save_path, project_name)
+        project_path = join(save_path, project_name)
     return project_path
 
 
@@ -402,7 +454,7 @@ def dcm2nrrd(
             pixel_data = np.squeeze(pixel_data, frame_axis)
             image_name = f"{frame_number}_{original_name}.nrrd"
 
-        save_path = os.path.join(os.path.dirname(image_path), image_name)
+        save_path = join(dirname(image_path), image_name)
         nrrd.write(save_path, pixel_data, header)
         save_paths.append(save_path)
         image_names.append(image_name)

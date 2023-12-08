@@ -1,8 +1,6 @@
 import json
 import os
-
 from distutils.util import strtobool
-
 
 import supervisely as sly
 from dotenv import load_dotenv
@@ -15,7 +13,7 @@ if sly.is_development():
 
 
 my_app: AppService = AppService()
-# api: sly.Api = my_app.public_api
+api = sly.Api.from_env()
 
 TEAM_ID = sly.env.team_id()
 WORKSPACE_ID = sly.env.workspace_id()
@@ -46,11 +44,17 @@ else:
 INPUT_DIR: str = os.environ.get("modal.state.slyFolder")
 INPUT_FILE: str = os.environ.get("modal.state.slyFile")
 
+if INPUT_DIR:
+    IS_ON_AGENT = api.file.is_on_agent(INPUT_DIR)
+else:
+    IS_ON_AGENT = api.file.is_on_agent(INPUT_FILE)
+
 WITH_ANNS: bool = bool(strtobool(os.environ.get("modal.state.withAnns")))
 
 STORAGE_DIR: str = my_app.data_dir
 mkdir(STORAGE_DIR, True)
 
+SLY_FORMAT_DOCS = "https://docs.supervise.ly/data-organization/00_ann_format_navi"
 project_id: int = None
 project_meta: sly.ProjectMeta = sly.ProjectMeta()
 project_meta_from_sly_format: sly.ProjectMeta = sly.ProjectMeta()
