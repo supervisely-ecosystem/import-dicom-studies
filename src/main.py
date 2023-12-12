@@ -22,16 +22,20 @@ def import_dicom_studies(
     )
     g.project_id = project.id
 
-    f.check_image_project_structure(project_dir, with_anns=g.WITH_ANNS, img_ext=".dcm")
+    if g.WITH_ANNS:
+        f.check_image_project_structure(project_dir, with_anns=g.WITH_ANNS, img_ext=".dcm")
     if g.WITH_ANNS:
         g.project_meta_from_sly_format = sly.read_single_project(g.STORAGE_DIR).meta
 
-    # Loop over the datasets in the project directory
-    datasets_paths = [
-        os.path.join(project_dir, item)
-        for item in os.listdir(project_dir)
-        if os.path.isdir(os.path.join(project_dir, item))
-    ]
+        # Loop over the datasets in the project directory
+        datasets_paths = [
+            os.path.join(project_dir, item)
+            for item in os.listdir(project_dir)
+            if os.path.isdir(os.path.join(project_dir, item))
+        ]
+    else:
+        datasets_paths = [d for d in sly.fs.dirs_filter(project_dir, f.is_dicom_folder)]
+        f.check_ds_dirs(datasets_paths, img_ext=".dcm")
 
     ds_progress = sly.Progress(message="Importing Datasets", total_cnt=len(datasets_paths))
     for dataset_path in datasets_paths:

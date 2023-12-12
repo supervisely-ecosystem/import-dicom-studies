@@ -159,6 +159,10 @@ def check_unique_name(lst: List[Dict[str, str]]) -> None:
         )
 
 
+def is_dicom_folder(dir_path: str) -> List[str]:
+    return any([is_dicom_file(f.path) for f in os.scandir(dir_path)])
+
+
 def check_image_project_structure(root_dir: str, with_anns: bool, img_ext: str) -> None:
     if with_anns:
         try:
@@ -201,34 +205,26 @@ def check_image_project_structure(root_dir: str, with_anns: bool, img_ext: str) 
                         g.my_app.logger.warn(
                             f"Unexpected file '{json_file.name}' in 'ann' directory: {ann_dir}"
                         )
+            g.my_app.logger.info(f"Project structure is correct")
         except Exception as e:
             sly.logger.warn("Failed checking Supervisely format.")
             sly.logger.warn(str(e))
-            with_anns = False
             g.WITH_ANNS = False
 
-    if not with_anns and all([is_dicom_file(item.path) for item in os.scandir(root_dir)]):
-        g.my_app.logger.warn(f"Not found dataset directories in the project directory: {root_dir}")
-        g.my_app.logger.info("Dataset name will be 'ds0'")
-        parent_dir = dirname(normpath(root_dir))
-        os.rename(root_dir, join(parent_dir, "ds0"))
-        os.mkdir(root_dir)
-        os.rename(join(parent_dir, "ds0"), join(root_dir, "ds0"))
-    else:
-        for dataset_dir in os.scandir(root_dir):
-            if not dataset_dir.is_dir():
-                continue
-            if check_extension_in_folder(dataset_dir.path, img_ext):
-                for data_file in os.scandir(dataset_dir.path):
-                    if data_file.is_file() and not data_file.name.lower().endswith(img_ext):
-                        g.my_app.logger.warn(
-                            f"Unexpected file '{data_file.name}' in directory: {dataset_dir.path}"
-                        )
-            else:
-                raise ValueError(
-                    f"Missing '{img_ext}' files in dataset directory: {dataset_dir.path}"
-                )
-    g.my_app.logger.info(f"Project structure is correct")
+
+def check_ds_dirs(dataset_dirs: list, img_ext: str) -> List[str]:
+    for dataset_dir in dataset_dirs:
+        if not dataset_dir.is_dir():
+            continue
+        if check_extension_in_folder(dataset_dir.path, img_ext):
+            for data_file in os.scandir(dataset_dir.path):
+                if data_file.is_file() and not data_file.name.lower().endswith(img_ext):
+                    g.my_app.logger.warn(
+                        f"Unexpected file '{data_file.name}' in directory: {dataset_dir.path}"
+                    )
+        else:
+            raise ValueError(f"Missing '{img_ext}' files in dataset directory: {dataset_dir.path}")
+    return dataset_dirs
 
 
 def check_extension_in_folder(folder_path: str, extension: str) -> bool:
