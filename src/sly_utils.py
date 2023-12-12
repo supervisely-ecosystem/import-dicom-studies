@@ -161,46 +161,53 @@ def check_unique_name(lst: List[Dict[str, str]]) -> None:
 
 def check_image_project_structure(root_dir: str, with_anns: bool, img_ext: str) -> None:
     if with_anns:
-        meta_file = join(root_dir, "meta.json")
+        try:
+            meta_file = join(root_dir, "meta.json")
 
-        if not exists(meta_file):
-            raise Exception(
-                f"Missing meta.json file. Learn more about <a href='{g.SLY_FORMAT_DOCS}'>Supervisely format</a>."
-            )
-        for dataset_dir in os.scandir(root_dir):
-            if not dataset_dir.is_dir():
-                continue
-
-            img_dir = join(dataset_dir.path, "img")
-            ann_dir = join(dataset_dir.path, "ann")
-
-            if not exists(img_dir):
+            if not exists(meta_file):
                 raise Exception(
-                    f"Missing 'img' directory in dataset directory: {dataset_dir.path}. "
-                    f"Learn more about <a href='{g.SLY_FORMAT_DOCS}'>Supervisely format</a>."
+                    f"Missing meta.json file. Learn more about <a href='{g.SLY_FORMAT_DOCS}'>Supervisely format</a>."
                 )
-            if not exists(ann_dir):
-                raise Exception(
-                    f"Missing 'ann' directory in dataset directory: {dataset_dir.path}. "
-                    f"Learn more about <a href='{g.SLY_FORMAT_DOCS}'>Supervisely format</a>."
-                )
-            for data_file in os.scandir(img_dir):
-                if img_ext == ".dcm":
-                    if data_file.is_file() and not is_dicom_file(data_file.path):
-                        g.my_app.logger.warn(
-                            f"Unexpected file '{data_file.name}' in 'img' directory: {img_dir}"
-                        )
-                else:
-                    if data_file.is_file() and not data_file.name.lower().endswith(img_ext):
-                        g.my_app.logger.warn(
-                            f"Unexpected file '{data_file.name}' in 'img' directory: {img_dir}"
-                        )
-            for json_file in os.scandir(ann_dir):
-                if json_file.is_file() and not json_file.name.lower().endswith(".json"):
-                    g.my_app.logger.warn(
-                        f"Unexpected file '{json_file.name}' in 'ann' directory: {ann_dir}"
+            for dataset_dir in os.scandir(root_dir):
+                if not dataset_dir.is_dir():
+                    continue
+
+                img_dir = join(dataset_dir.path, "img")
+                ann_dir = join(dataset_dir.path, "ann")
+
+                if not exists(img_dir):
+                    raise Exception(
+                        f"Missing 'img' directory in dataset directory: {dataset_dir.path}. "
+                        f"Learn more about <a href='{g.SLY_FORMAT_DOCS}'>Supervisely format</a>."
                     )
-    elif all([is_dicom_file(item.path) for item in os.scandir(root_dir)]):
+                if not exists(ann_dir):
+                    raise Exception(
+                        f"Missing 'ann' directory in dataset directory: {dataset_dir.path}. "
+                        f"Learn more about <a href='{g.SLY_FORMAT_DOCS}'>Supervisely format</a>."
+                    )
+                for data_file in os.scandir(img_dir):
+                    if img_ext == ".dcm":
+                        if data_file.is_file() and not is_dicom_file(data_file.path):
+                            g.my_app.logger.warn(
+                                f"Unexpected file '{data_file.name}' in 'img' directory: {img_dir}"
+                            )
+                    else:
+                        if data_file.is_file() and not data_file.name.lower().endswith(img_ext):
+                            g.my_app.logger.warn(
+                                f"Unexpected file '{data_file.name}' in 'img' directory: {img_dir}"
+                            )
+                for json_file in os.scandir(ann_dir):
+                    if json_file.is_file() and not json_file.name.lower().endswith(".json"):
+                        g.my_app.logger.warn(
+                            f"Unexpected file '{json_file.name}' in 'ann' directory: {ann_dir}"
+                        )
+        except Exception as e:
+            sly.logger.warn("Failed checking Supervisely format.")
+            sly.logger.warn(str(e))
+            with_anns = False
+            g.WITH_ANNS = False
+
+    if not with_anns and all([is_dicom_file(item.path) for item in os.scandir(root_dir)]):
         g.my_app.logger.warn(f"Not found dataset directories in the project directory: {root_dir}")
         g.my_app.logger.info("Dataset name will be 'ds0'")
         parent_dir = dirname(normpath(root_dir))
@@ -293,10 +300,33 @@ def handle_input_path(api: sly.Api) -> str:
                 g.INPUT_DIR, g.INPUT_FILE = None, join(g.INPUT_DIR, listdir[0])
         elif g.INPUT_FILE:
             if not is_archive(g.INPUT_FILE, local=False):
-                if g.INPUT_FILE.lower().endswith(".dcm"):
-                    sly.logger.info("File mode is selected, but uploaded file is not archive.")
+                sly.logger.info("File mode is selected, but uploaded file is not archive.")
+                if g.INPUT_FILE.lower() == "meta.json":
                     sly.logger.info("Switching to folder mode.")
                     g.INPUT_FILE, g.INPUT_DIR = None, dirname(g.INPUT_FILE)
+                elif g.INPUT_FILE.lower().endswith(".dcm"):
+                    sly.logger.info("Switching to folder mode.")
+                    g.INPUT_FILE, g.INPUT_DIR = None, dirname(g.INPUT_FILE)
+                elif g.INPUT_FILE.lower().endswith(".json"):
+                    possible_ann_dir = dirname(g.INPUT_FILE)
+                    possible_ds_dir = dirname(possible_ann_dir)
+                    possible_img_dir = join(possible_ds_dir, "img")
+                    possible_proj_dir = dirname(possible_ds_dir)
+
+                    ann_listdir = api.file.listdir(g.TEAM_ID, possible_ann_dir)
+                    ds_listdir = api.file.listdir(g.TEAM_ID, possible_ds_dir)
+
+                    is_only_json = all([get_file_ext(f) == ".json" for f in ann_listdir])
+                    is_ds_dir = [basename(normpath(f)) for f in ds_listdir] == ["img", "ann"]
+                    meta_exists = api.file.exists(g.TEAM_ID, join(possible_proj_dir, "meta.json"))
+
+                    if is_only_json and is_ds_dir and meta_exists:
+                        sly.logger.info("Supervisely format is detected. Switching to folder mode.")
+                        g.INPUT_FILE, g.INPUT_DIR = None, possible_proj_dir
+                    elif api.file.dir_exists(g.TEAM_ID, possible_img_dir):
+                        sly.logger.info("Supervisely format is not detected.")
+                        sly.logger.info("Found 'img' directory. Switching to folder mode.")
+                        g.INPUT_FILE, g.INPUT_DIR = None, possible_ds_dir
 
 
 def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) -> str:
@@ -304,6 +334,7 @@ def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) ->
     handle_input_path(api)
     project_path = None
     if g.INPUT_DIR is not None:
+        sly.logger.info(f"Input directory: {g.INPUT_DIR}")
         if g.IS_ON_AGENT:
             agent_id, cur_files_path = api.file.parse_agent_id_and_path(g.INPUT_DIR)
         else:
@@ -328,6 +359,7 @@ def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) ->
         sly.fs.remove_junk_from_dir(project_path)
 
     elif g.INPUT_FILE is not None:
+        sly.logger.info(f"Input file: {g.INPUT_FILE}")
         if g.IS_ON_AGENT:
             agent_id, cur_files_path = api.file.parse_agent_id_and_path(g.INPUT_FILE)
         else:
