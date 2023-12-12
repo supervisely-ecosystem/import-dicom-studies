@@ -300,29 +300,31 @@ def handle_input_path(api: sly.Api) -> str:
                 if g.INPUT_FILE.lower() == "meta.json":
                     sly.logger.info("Switching to folder mode.")
                     g.INPUT_FILE, g.INPUT_DIR = None, dirname(g.INPUT_FILE)
-                elif g.INPUT_FILE.lower().endswith(".dcm"):
-                    sly.logger.info("Switching to folder mode.")
-                    g.INPUT_FILE, g.INPUT_DIR = None, dirname(g.INPUT_FILE)
-                elif g.INPUT_FILE.lower().endswith(".json"):
-                    possible_ann_dir = dirname(g.INPUT_FILE)
-                    possible_ds_dir = dirname(possible_ann_dir)
+                elif get_file_ext(g.INPUT_FILE) in [".json", ".dcm"]:
+                    possible_ds_dir = dirname(dirname(g.INPUT_FILE))
                     possible_img_dir = join(possible_ds_dir, "img")
+                    possible_ann_dir = join(possible_ds_dir, "ann")
                     possible_proj_dir = dirname(possible_ds_dir)
 
-                    ann_listdir = api.file.listdir(g.TEAM_ID, possible_ann_dir)
                     ds_listdir = api.file.listdir(g.TEAM_ID, possible_ds_dir)
+                    ann_listdir = api.file.listdir(g.TEAM_ID, possible_ann_dir)
 
-                    is_only_json = all([get_file_ext(f) == ".json" for f in ann_listdir])
-                    is_ds_dir = [basename(normpath(f)) for f in ds_listdir] == ["img", "ann"]
+                    contains_json = any([get_file_ext(f) == ".json" for f in ann_listdir])
+                    is_ds_dir = all([basename(normpath(f)) in ["img", "ann"] for f in ds_listdir])
                     meta_exists = api.file.exists(g.TEAM_ID, join(possible_proj_dir, "meta.json"))
 
-                    if is_only_json and is_ds_dir and meta_exists:
+                    if contains_json and is_ds_dir and meta_exists:
                         sly.logger.info("Supervisely format is detected. Switching to folder mode.")
                         g.INPUT_FILE, g.INPUT_DIR = None, possible_proj_dir
                     elif api.file.dir_exists(g.TEAM_ID, possible_img_dir):
                         sly.logger.info("Supervisely format is not detected.")
                         sly.logger.info("Found 'img' directory. Switching to folder mode.")
-                        g.INPUT_FILE, g.INPUT_DIR = None, possible_ds_dir
+                        g.INPUT_FILE, g.INPUT_DIR = None, possible_img_dir
+                        g.WITH_ANNS = False
+                    elif get_file_ext(g.INPUT_FILE) == ".dcm":
+                        sly.logger.info("Supervisely format is not detected.")
+                        g.INPUT_FILE, g.INPUT_DIR = None, dirname(g.INPUT_FILE)
+                        g.WITH_ANNS = False
 
 
 def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) -> str:
