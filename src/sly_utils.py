@@ -214,16 +214,16 @@ def check_image_project_structure(root_dir: str, with_anns: bool, img_ext: str) 
 
 def check_ds_dirs(dataset_dirs: list, img_ext: str) -> List[str]:
     for dataset_dir in dataset_dirs:
-        if not dataset_dir.is_dir():
+        if not sly.fs.dir_exists(dataset_dir):
             continue
-        if check_extension_in_folder(dataset_dir.path, img_ext):
-            for data_file in os.scandir(dataset_dir.path):
+        if check_extension_in_folder(dataset_dir, img_ext):
+            for data_file in os.scandir(dataset_dir):
                 if data_file.is_file() and not data_file.name.lower().endswith(img_ext):
                     g.my_app.logger.warn(
-                        f"Unexpected file '{data_file.name}' in directory: {dataset_dir.path}"
+                        f"Unexpected file '{data_file.name}' in directory: {dataset_dir}"
                     )
         else:
-            raise ValueError(f"Missing '{img_ext}' files in dataset directory: {dataset_dir.path}")
+            raise ValueError(f"Missing '{img_ext}' files in dataset directory: {dataset_dir}")
     return dataset_dirs
 
 
