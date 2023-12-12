@@ -17,10 +17,6 @@ def import_dicom_studies(
     # Create a new project in the workspace
     project_dir = f.download_data_from_team_files(api=api, task_id=task_id, save_path=g.STORAGE_DIR)
     project_name = os.path.basename(project_dir)
-    project = api.project.create(
-        workspace_id=g.WORKSPACE_ID, name=project_name, change_name_if_conflict=True
-    )
-    g.project_id = project.id
 
     if g.WITH_ANNS:
         f.check_image_project_structure(project_dir, with_anns=g.WITH_ANNS, img_ext=".dcm")
@@ -37,21 +33,30 @@ def import_dicom_studies(
         datasets_paths = [d for d in sly.fs.dirs_filter(project_dir, f.is_dicom_folder)]
         f.check_ds_dirs(datasets_paths, img_ext=".dcm")
 
-    ds_progress = sly.Progress(message="Importing Datasets", total_cnt=len(datasets_paths))
-    for dataset_path in datasets_paths:
-        try:
-            f.import_dataset(api, dataset_path)
-        except FileNotFoundError as e:
-            if str(e) == "Nothing to import":
-                sly.logger.warning(f"Skipping dataset '{dataset_path}', nothing to import")
-                continue
-        ds_progress.iter_done_report()
-    if api.project.get_datasets_count(project.id) == 0:
-        api.project.remove(project.id)
-        title = f"Failed to import DICOM data."
+    if len(datasets_paths) == 0:
+        title = "No DICOM data found."
         description = "Read the app overview to prepare your data for import."
         api.task.set_output_error(task_id, title=title, description=description)
-        app_logger.warn(f"{title} {description}")
+        app_logger.error(f"{title} {description}")
+    else: 
+        project = api.project.create(
+            workspace_id=g.WORKSPACE_ID, name=project_name, change_name_if_conflict=True
+        )
+        g.project_id = project.id
+        ds_progress = sly.Progress(message="Importing Datasets", total_cnt=len(datasets_paths))
+        for dataset_path in datasets_paths:
+            try:
+                f.import_dataset(api, dataset_path)
+            except FileNotFoundError as e:
+                if str(e) == "Nothing to import":
+                    sly.logger.warning(f"Skipping dataset '{dataset_path}', nothing to import")
+                    continue
+            ds_progress.iter_done_report()
+        if api.project.get_datasets_count(project.id) == 0:
+            api.project.remove(project.id)
+            title = f"Failed to import DICOM data."
+            description = "Read the app overview to prepare your data for import."
+            raise Exception(f"{title} {description}")
     remove_dir(project_dir)
     g.my_app.stop()
 
