@@ -19,7 +19,7 @@
         "uploadMeta": false,
         "addTagsFromDcm": "Do not add tags",
         "dcmTags": "{\n\t\"tags\": [\n\t\t\"Manufacturer\",\n\t\t\"ManufacturerModelName\",\n\t\t\"Modality\"\n\t]\n}",
-        "withAnns": false
+        "withAnns": true
     },
     "task_location": "workspace_tasks",
     "icon": "https://i.imgur.com/lAEupML.png",
