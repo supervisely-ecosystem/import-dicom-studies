@@ -19,6 +19,7 @@ from supervisely.io.fs import (
     get_file_name_with_ext,
     silent_remove,
 )
+from tqdm import tqdm
 
 import sly_globals as g
 
@@ -34,14 +35,15 @@ def import_dataset(api: sly.Api, dataset_path: str) -> None:
     batch_size = 50
     # Process the images in batches
     ds_images_paths, ds_annotations_paths = get_paths(dataset_path, with_anns=g.WITH_ANNS)
-    batch_progress = sly.Progress(message="Processing images", total_cnt=len(ds_images_paths))
+    batch_progress = tqdm(total=len(ds_images_paths), desc="Processing Images", unit="image")
 
     for batch_imgs, batch_anns in zip(
         sly.batched(ds_images_paths, batch_size),
         sly.batched(ds_annotations_paths, batch_size),
     ):
         import_images(api, dataset_info, batch_imgs, batch_anns)
-        batch_progress.iters_done_report(len(batch_imgs))
+        batch_progress.update(len(batch_imgs))
+    batch_progress.close()
 
 
 def import_images(
@@ -163,7 +165,7 @@ def is_dicom_folder(dir_path: str) -> List[str]:
     return any([is_dicom_file(f.path) for f in os.scandir(dir_path)])
 
 
-def check_image_project_structure(root_dir: str, with_anns: bool, img_ext: str) -> None:
+def check_image_project_structure(root_dir: str, with_anns: bool) -> None:
     if with_anns:
         try:
             meta_file = join(root_dir, "meta.json")
@@ -190,13 +192,8 @@ def check_image_project_structure(root_dir: str, with_anns: bool, img_ext: str) 
                         f"Learn more about <a href='{g.SLY_FORMAT_DOCS}'>Supervisely format</a>."
                     )
                 for data_file in os.scandir(img_dir):
-                    if img_ext == ".dcm":
-                        if data_file.is_file() and not is_dicom_file(data_file.path):
-                            g.my_app.logger.warn(
-                                f"Unexpected file '{data_file.name}' in 'img' directory: {img_dir}"
-                            )
-                    else:
-                        if data_file.is_file() and not data_file.name.lower().endswith(img_ext):
+                    if data_file.is_file():
+                        if not is_dicom_file(data_file.path):
                             g.my_app.logger.warn(
                                 f"Unexpected file '{data_file.name}' in 'img' directory: {img_dir}"
                             )
@@ -212,19 +209,22 @@ def check_image_project_structure(root_dir: str, with_anns: bool, img_ext: str) 
             g.WITH_ANNS = False
 
 
-def check_ds_dirs(dataset_dirs: list, img_ext: str) -> List[str]:
+def check_ds_dirs(dataset_dirs: list) -> List[str]:
+    valid_dataset_dirs = []
     for dataset_dir in dataset_dirs:
         if not sly.fs.dir_exists(dataset_dir):
             continue
-        if check_extension_in_folder(dataset_dir, img_ext):
-            for data_file in os.scandir(dataset_dir):
-                if data_file.is_file() and not data_file.name.lower().endswith(img_ext):
-                    g.my_app.logger.warn(
-                        f"Unexpected file '{data_file.name}' in directory: {dataset_dir}"
-                    )
-        else:
-            raise ValueError(f"Missing '{img_ext}' files in dataset directory: {dataset_dir}")
-    return dataset_dirs
+        dicom_files_count = 0
+        for data_file in os.scandir(dataset_dir):
+            if data_file.is_file() and is_dicom_file(data_file.path):
+                dicom_files_count += 1
+            else:
+                g.my_app.logger.warn(
+                    f"Unexpected file '{data_file.name}' in directory: {dataset_dir}"
+                )
+        if dicom_files_count > 0:
+            valid_dataset_dirs.append(dataset_dir)
+    return valid_dataset_dirs
 
 
 def check_extension_in_folder(folder_path: str, extension: str) -> bool:
@@ -234,29 +234,8 @@ def check_extension_in_folder(folder_path: str, extension: str) -> bool:
     return False
 
 
-def update_progress(count, api: sly.Api, task_id: int, progress: sly.Progress) -> None:
-    count = min(count, progress.total - progress.current)
-    progress.iters_done(count)
-    if progress.need_report():
-        progress.report_progress()
-
-
-def get_progress_cb(
-    api: sly.Api,
-    task_id: int,
-    message: str,
-    total: int,
-    is_size: bool = False,
-    func: Callable = update_progress,
-) -> functools.partial:
-    progress = sly.Progress(message, total, is_size=is_size)
-    progress_cb = partial(func, api=api, task_id=task_id, progress=progress)
-    progress_cb(0)
-    return progress_cb
-
-
 def is_dicom_file(path: str, verbose: bool = False) -> bool:
-    """Checks if file is dicom file by given path."""
+    """Checks if file is DICOM file by given path."""
     try:
         pydicom.read_file(str(Path(path).resolve()), stop_before_pixels=True)
         result = True
@@ -334,19 +313,18 @@ def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) ->
     if g.INPUT_DIR is not None:
         sly.logger.info(f"Input directory: {g.INPUT_DIR}")
         if g.IS_ON_AGENT:
-            agent_id, cur_files_path = api.file.parse_agent_id_and_path(g.INPUT_DIR)
+            _, cur_files_path = api.file.parse_agent_id_and_path(g.INPUT_DIR)
         else:
             cur_files_path = g.INPUT_DIR
 
         remote_path = g.INPUT_DIR
         project_path = join(save_path, basename(normpath(cur_files_path)))
         sizeb = api.file.get_directory_size(g.TEAM_ID, remote_path)
-        progress_cb = get_progress_cb(
-            api=api,
-            task_id=task_id,
-            message=f"Downloading {remote_path.lstrip('/').rstrip('/')}",
+        progress_cb = tqdm(
             total=sizeb,
-            is_size=True,
+            desc=f"Downloading {remote_path.lstrip('/').rstrip('/')}",
+            unit="B",
+            unit_scale=True,
         )
         api.file.download_directory(
             team_id=g.TEAM_ID,
@@ -354,24 +332,24 @@ def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) ->
             local_save_path=project_path,
             progress_cb=progress_cb,
         )
+        progress_cb.close()
         sly.fs.remove_junk_from_dir(project_path)
 
     elif g.INPUT_FILE is not None:
         sly.logger.info(f"Input file: {g.INPUT_FILE}")
         if g.IS_ON_AGENT:
-            agent_id, cur_files_path = api.file.parse_agent_id_and_path(g.INPUT_FILE)
+            _, cur_files_path = api.file.parse_agent_id_and_path(g.INPUT_FILE)
         else:
             cur_files_path = g.INPUT_FILE
 
         remote_path = g.INPUT_FILE
         save_archive_path = join(save_path, get_file_name_with_ext(normpath(cur_files_path)))
         sizeb = api.file.get_info_by_path(g.TEAM_ID, remote_path).sizeb
-        progress_cb = get_progress_cb(
-            api=api,
-            task_id=task_id,
-            message=f"Downloading {remote_path.lstrip('/')}",
+        progress_cb = tqdm(
             total=sizeb,
-            is_size=True,
+            desc=f"Downloading {remote_path.lstrip('/')}",
+            unit="B",
+            unit_scale=True,
         )
         api.file.download(
             team_id=g.TEAM_ID,
@@ -379,6 +357,7 @@ def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) ->
             local_save_path=save_archive_path,
             progress_cb=progress_cb,
         )
+        progress_cb.close()
         if is_archive(save_archive_path):
             sly.fs.unpack_archive(save_archive_path, save_path, remove_junk=True)
         else:
@@ -566,17 +545,3 @@ def create_group_tag(group_tag_info: Dict[str, str]) -> sly.Tag:
         g.project_meta = g.project_meta.add_tag_meta(group_tag_meta)
     group_tag = sly.Tag(group_tag_meta, group_tag_value)
     return group_tag
-
-
-def get_progress_cb(
-    api: sly.Api,
-    task_id: int,
-    message: str,
-    total: int,
-    is_size: bool = False,
-    func: Callable = update_progress,
-) -> functools.partial:
-    progress = sly.Progress(message, total, is_size=is_size)
-    progress_cb = functools.partial(func, api=api, task_id=task_id, progress=progress)
-    progress_cb(0)
-    return progress_cb

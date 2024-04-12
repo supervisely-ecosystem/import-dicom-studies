@@ -20,7 +20,7 @@
     "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.organizeImports": true
+      "source.organizeImports": "explicit"
     }
   },
   "isort.args": ["--profile", "black"],
@@ -31,5 +31,14 @@
   "autoDocstring.customTemplatePath": "docs/.mustache",
   "python.testing.pytestArgs": ["tests/inference_cache"],
   "python.testing.unittestEnabled": false,
-  "python.testing.pytestEnabled": true
+  "python.testing.pytestEnabled": true,
+  "workbench.colorCustomizations": {
+    "minimap.errorHighlight": "#ff0000",
+    "editorOverviewRuler.errorForeground": "#ff0000",
+    "editorOverviewRuler.warningForeground": "#ff9900",
+    "minimap.warningHighlight": "#ff9900",
+    "minimap.infoHighlight": "#00a8aa",
+    "editorOverviewRuler.infoForeground": "#00a8aa"
+  },
+  "git.ignoreLimitWarning": true
 }
