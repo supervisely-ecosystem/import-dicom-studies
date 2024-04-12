@@ -1,0 +1,63 @@
+name: Checking modified files in PR with pylint
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+jobs:
+  pylint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.8
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pylint
+          pip install -r dev_requirements.txt
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v42
+      - run: |
+          for changed_file in ${{ steps.changed-files.outputs.all_changed_and_modified_files }}; do
+            echo "File modified in PR: ${changed_file}"
+          done
+
+      - name: Run check with pylint
+        run: |
+          python_files=()
+          for changed_file in ${{ steps.changed-files.outputs.all_changed_and_modified_files }}; do
+            if [[ $changed_file == *.py ]]; then
+              python_files+=("$changed_file")
+            fi
+          done
+          if [ "${#python_files[@]}" -gt 0 ]; then
+            pylint_output=$(pylint "${python_files[@]}" --generated-members=cv2.*,signal.*) || true
+            if [[ $pylint_output == *"E"* ]] || [[ $pylint_output == *"F"* ]]; then
+              # Save pylint output to a file
+              echo "$pylint_output" > pylint_errors.txt
+              echo "ERRORS_DETECTED=true" >> $GITHUB_ENV
+            else
+              echo "ERRORS_DETECTED=false" >> $GITHUB_ENV
+            fi
+          fi
+          for file in "${python_files[@]}"; do
+            echo "File checked: $file"
+          done
+        id: pylint
+
+      - name: Fail if pylint errors detected
+        if: ${{ env.ERRORS_DETECTED == 'true' }}
+        run: |
+          issue_body=$(cat pylint_errors.txt)
+          echo "Pylint Errors: $issue_body"
+          echo "RESULT=failure" >> $GITHUB_ENV
+          exit 1

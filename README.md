@@ -56,37 +56,35 @@ Archive structure:
 ℹ️ You can download the archive with data example [here](https://github.com/supervisely-ecosystem/import-dicom-studies/files/12557627/my_dicom_studies_project.zip).
 
 ```text
-.
-└── my_project.zip
-    └── cardio_project
-        └── research_1
-            ├── IMG-0001-00001.dcm
-            ├── IMG-0001-00002.dcm
-            ├── IMG-0001-00003.dcm
-            ├── IMG-0001-00004.dcm
-            └── 1.2.3.4.5.6.10.10.100.110.10000.00000000000000.0000
+  📦my_project.zip
+   ┗ 📂cardio_project
+      ┗ 📂research_1
+         ┣ 📜IMG-0001-00001.dcm
+         ┣ 📜IMG-0001-00002.dcm
+         ┣ 📜IMG-0001-00003.dcm
+         ┣ 📜IMG-0001-00004.dcm
+         ┗ 📜1.2.3.4.5.6.10.10.100.110.10000.00000000000000.0000
 ```
 
 2. With annotations (supervisely format). [Learn more here.](https://docs.supervise.ly/data-organization/00_ann_format_navi)
 
 ```text
-.
-└── my_project.zip
-    └── cardio_project
-        └── meta.json
-        └── research_1
-            └── ann
-                ├── IMG-0001-00001.json
-                ├── IMG-0001-00002.json
-                ├── IMG-0001-00003.json
-                ├── IMG-0001-00004.json
-                └── 1.2.3.4.5.6.10.10.100.110.10000.00000000000000.0000.json
-            └── img
-                ├── IMG-0001-00001.dcm
-                ├── IMG-0001-00002.dcm
-                ├── IMG-0001-00003.dcm
-                ├── IMG-0001-00004.dcm
-                └── 1.2.3.4.5.6.10.10.100.110.10000.00000000000000.0000
+  📦my_project.zip
+   ┗ 📂cardio_project
+      ┣ 📜meta.json
+      ┗ 📂research_1
+         ┣ 📂ann
+         ┃  ┣ 📜IMG-0001-00001.json
+         ┃  ┣ 📜IMG-0001-00002.json
+         ┃  ┣ 📜IMG-0001-00003.json
+         ┃  ┣ 📜IMG-0001-00004.json
+         ┃  ┗ 📜1.2.3.4.5.6.10.10.100.110.10000.00000000000000.0000.json
+         ┗ 📂img
+            ┣ 📜IMG-0001-00001.dcm
+            ┣ 📜IMG-0001-00002.dcm
+            ┣ 📜IMG-0001-00003.dcm
+            ┣ 📜IMG-0001-00004.dcm
+            ┗ 📜1.2.3.4.5.6.10.10.100.110.10000.00000000000000.0000
 ```
 
 **Folder**
@@ -96,14 +94,13 @@ Folder structure:
 1. Without annotations (by default)
 
 ```text
-.
-└── cardio_project
-    └── research_1
-        ├── IMG-0001-00001.dcm
-        ├── IMG-0001-00002.dcm
-        ├── IMG-0001-00003.dcm
-        ├── IMG-0001-00004.dcm
-        └── 1.2.3.4.5.6.10.10.100.110.10000.00000000000000.0000
+  📂cardio_project
+   ┗ 📂research_1
+      ┣ 📜IMG-0001-00001.dcm
+      ┣ 📜IMG-0001-00002.dcm
+      ┣ 📜IMG-0001-00003.dcm
+      ┣ 📜IMG-0001-00004.dcm
+      ┗ 📜1.2.3.4.5.6.10.10.100.110.10000.00000000000000.0000
 ```
 
 Structure explained:
@@ -129,22 +126,21 @@ Example of created project using the example below and tag `AcquisitionDate` as 
 2. With annotations (supervisely format). [Learn more here.](https://docs.supervise.ly/data-organization/00_ann_format_navi)
 
 ```text
-.
-└── cardio_project
-    └── meta.json
-    └── research_1
-        └── ann
-            ├── IMG-0001-00001.json
-            ├── IMG-0001-00002.json
-            ├── IMG-0001-00003.json
-            ├── IMG-0001-00004.json
-            └── 1.2.3.4.5.6.10.10.100.110.10000.00000000000000.0000.json
-        └── img
-            ├── IMG-0001-00001.dcm
-            ├── IMG-0001-00002.dcm
-            ├── IMG-0001-00003.dcm
-            ├── IMG-0001-00004.dcm
-            └── 1.2.3.4.5.6.10.10.100.110.10000.00000000000000.0000
+  📂cardio_project
+   ┣ 📜meta.json
+   ┗ 📂research_1
+      ┣ 📂ann
+      ┃  ┣ 📜IMG-0001-00001.json
+      ┃  ┣ 📜IMG-0001-00002.json
+      ┃  ┣ 📜IMG-0001-00003.json
+      ┃  ┣ 📜IMG-0001-00004.json
+      ┃  ┗ 📜1.2.3.4.5.6.10.10.100.110.10000.00000000000000.0000.json
+      ┗ 📂img
+         ┣ 📜IMG-0001-00001.dcm
+         ┣ 📜IMG-0001-00002.dcm
+         ┣ 📜IMG-0001-00003.dcm
+         ┣ 📜IMG-0001-00004.dcm
+         ┗ 📜1.2.3.4.5.6.10.10.100.110.10000.00000000000000.0000
 ```
 
 Structure explained:
