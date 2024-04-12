@@ -366,6 +366,7 @@ def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) ->
             api.task.set_output_error(task_id, title=title, description=description)
             g.my_app.logger.error(f"{title} {description}")
             g.api.task.stop(task_id)
+            return None
         silent_remove(save_archive_path)
         if len(os.listdir(save_path)) > 1:
             g.my_app.logger.error("There must be only 1 project directory in the archive")
