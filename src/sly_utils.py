@@ -361,7 +361,11 @@ def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) ->
         if is_archive(save_archive_path):
             sly.fs.unpack_archive(save_archive_path, save_path, remove_junk=True)
         else:
-            raise Exception("Incorrect input data structure. Read more in the app description.")
+            title = "Incorrect input data structure."
+            description = "Read more in the app description."
+            api.task.set_output_error(task_id, title=title, description=description)
+            g.my_app.logger.error(f"{title} {description}")
+            g.my_app.stop()
         silent_remove(save_archive_path)
         if len(os.listdir(save_path)) > 1:
             g.my_app.logger.error("There must be only 1 project directory in the archive")
