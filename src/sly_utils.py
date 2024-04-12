@@ -365,7 +365,6 @@ def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) ->
             description = "Read more in the app description."
             api.task.set_output_error(task_id, title=title, description=description)
             g.my_app.logger.error(f"{title} {description}")
-            g.my_app.stop()
             g.api.task.stop(task_id)
         silent_remove(save_archive_path)
         if len(os.listdir(save_path)) > 1:
