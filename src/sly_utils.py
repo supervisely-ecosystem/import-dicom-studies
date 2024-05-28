@@ -52,10 +52,11 @@ def import_images(
     img_paths = []
     img_names = []
     anns = []
+    img_metas = []
 
     for image_path, annotation_path in zip(batch_imgs, batch_anns):
         try:
-            image_paths, image_names, anns_from_dcm = dcm2nrrd(
+            image_paths, image_names, anns_from_dcm, dcm_meta = dcm2nrrd(
                 image_path=image_path,
                 group_tag_name=g.GROUP_TAG_NAME,
             )
@@ -65,6 +66,7 @@ def import_images(
 
         img_paths.extend(image_paths)
         img_names.extend(image_names)
+        img_metas.extend([dcm_meta for _ in image_paths])
 
         if g.WITH_ANNS:
             ann = sly.Annotation.load_json_file(annotation_path, g.project_meta_from_sly_format)
@@ -81,7 +83,7 @@ def import_images(
 
     # Upload the images and annotations to the project
     dst_image_infos = api.image.upload_paths(
-        dataset_id=dataset.id, names=img_names, paths=img_paths
+        dataset_id=dataset.id, names=img_names, paths=img_paths, metas=img_metas
     )
     dst_image_ids = [img_info.id for img_info in dst_image_infos]
 
@@ -425,7 +427,7 @@ def dcm2nrrd(
 ) -> Tuple[str, str, sly.Annotation]:
     """Converts DICOM data to nrrd format and returns image paths, image names, and image annotations."""
     dcm = pydicom.read_file(image_path)
-    dcm_tags = create_dcm_tags(dcm)
+    dcm_tags, dcm_meta = create_dcm_tags(dcm)
     pixel_data_list = [dcm.pixel_array]
 
     if len(dcm.pixel_array.shape) == 3:
@@ -490,7 +492,7 @@ def dcm2nrrd(
             if dcm_tags is not None:
                 ann = ann.add_tags(sly.TagCollection(dcm_tags))
         anns.append(ann)
-    return save_paths, image_names, anns
+    return save_paths, image_names, anns, dcm_meta
 
 
 def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
@@ -498,10 +500,10 @@ def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
     if g.ADD_DCM_TAGS == g.DO_NOT_ADD:
         return None
 
-    tags_from_dcm = []
+    tags_from_dcm, dcm_tags_dict = [], {}
     if g.ADD_DCM_TAGS == g.ADD_ALL:
         g.DCM_TAGS = list(dcm.keys())
-    for dcm_tag in g.DCM_TAGS:
+    for dcm_tag in list(dcm.keys()):
         try:
             curr_tag = dcm[dcm_tag]
             dcm_tag_name = str(curr_tag.name)
@@ -512,7 +514,9 @@ def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
             if len(dcm_tag_value) > 255:
                 sly.logger.warn(f"Tag [{dcm_tag_name}] has too long value. Skipping tag.")
                 continue
-            tags_from_dcm.append((dcm_tag_name, dcm_tag_value))
+            if g.ADD_DCM_TAGS == g.ADD_ALL:
+                tags_from_dcm.append((dcm_tag_name, dcm_tag_value))
+            dcm_tags_dict[dcm_tag_name] = dcm_tag_value
         except:
             dcm_filename = get_file_name_with_ext(dcm.filename)
             g.my_app.logger.warn(
@@ -529,7 +533,8 @@ def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
 
         dcm_tag = sly.Tag(dcm_tag_meta, dcm_tag_value)
         dcm_sly_tags.append(dcm_tag)
-    return dcm_sly_tags
+
+    return dcm_sly_tags, dcm_tags_dict
 
 
 def create_ann_with_tags(
