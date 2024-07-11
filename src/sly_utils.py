@@ -430,10 +430,8 @@ def dcm2nrrd(
 ) -> Tuple[str, str, sly.Annotation]:
     """Converts DICOM data to nrrd format and returns image paths, image names, and image annotations."""
     dcm = pydicom.read_file(image_path)
-    try:
-        dcm_tags, dcm_meta = create_dcm_tags(dcm)
-    except TypeError:
-        dcm_tags, dcm_meta = None, None
+    dcm_tags, dcm_meta = create_dcm_tags(dcm)
+    
     pixel_data_list = [dcm.pixel_array]
 
     if len(dcm.pixel_array.shape) == 3:
@@ -501,10 +499,10 @@ def dcm2nrrd(
     return save_paths, image_names, anns, dcm_meta
 
 
-def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
+def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]: # ! Incorrect return type, to fix.
     """Create tags from DICOM metadata."""
     if g.ADD_DCM_TAGS == g.DO_NOT_ADD:
-        return None
+        return [], {}
 
     tags_from_dcm, dcm_tags_dict = [], {}
     if g.ADD_DCM_TAGS == g.ADD_ALL:
