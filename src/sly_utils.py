@@ -85,6 +85,7 @@ def import_images(
     if not img_metas:
         dst_image_infos = api.image.upload_paths(dataset_id=dataset.id, names=img_names, paths=img_paths)
     else:
+        sly.logger.debug(f"img_metas exists: {img_metas}")
         dst_image_infos = api.image.upload_paths(
             dataset_id=dataset.id, names=img_names, paths=img_paths, metas=img_metas
         )
