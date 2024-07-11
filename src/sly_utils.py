@@ -61,7 +61,7 @@ def import_images(
                 group_tag_name=g.GROUP_TAG_NAME,
             )
         except Exception as e:
-            sly.logger.warning(f"File '{image_path}' will be skipped due to: {str(e)}")
+            sly.logger.warning(f"File '{image_path}' will be skipped due to: {repr(e)}")
             continue
 
         img_paths.extend(image_paths)
