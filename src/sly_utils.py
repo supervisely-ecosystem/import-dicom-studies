@@ -429,7 +429,10 @@ def dcm2nrrd(
 ) -> Tuple[str, str, sly.Annotation]:
     """Converts DICOM data to nrrd format and returns image paths, image names, and image annotations."""
     dcm = pydicom.read_file(image_path)
-    dcm_tags, dcm_meta = create_dcm_tags(dcm)
+    try:
+        dcm_tags, dcm_meta = create_dcm_tags(dcm)
+    except TypeError:
+        dcm_tags, dcm_meta = None, None
     pixel_data_list = [dcm.pixel_array]
 
     if len(dcm.pixel_array.shape) == 3:
