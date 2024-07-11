@@ -82,13 +82,12 @@ def import_images(
         raise FileNotFoundError("Nothing to import")
 
     # Upload the images and annotations to the project
-    if not img_metas:
-        dst_image_infos = api.image.upload_paths(dataset_id=dataset.id, names=img_names, paths=img_paths)
-    else:
-        sly.logger.debug(f"img_metas exists: {img_metas}")
-        dst_image_infos = api.image.upload_paths(
-            dataset_id=dataset.id, names=img_names, paths=img_paths, metas=img_metas
-        )
+    if img_metas is not None:
+        if any (img_meta is None for img_meta in img_metas):
+            img_metas = None
+    dst_image_infos = api.image.upload_paths(
+        dataset_id=dataset.id, names=img_names, paths=img_paths, metas=img_metas
+    )
     dst_image_ids = [img_info.id for img_info in dst_image_infos]
 
     # Merge meta from annotations (if supervisely format) with other tags
