@@ -60,6 +60,8 @@ def import_images(
                 image_path=image_path,
                 group_tag_name=g.GROUP_TAG_NAME,
             )
+        except TypeError:
+            raise
         except Exception as e:
             sly.logger.warning(f"File '{image_path}' will be skipped due to: {repr(e)}")
             continue
