@@ -81,10 +81,6 @@ def import_images(
         api.dataset.remove(dataset.id)
         raise FileNotFoundError("Nothing to import")
 
-    # Upload the images and annotations to the project
-    # if img_metas is not None:
-    #     if any (img_meta is None for img_meta in img_metas):
-    #         img_metas = None
     dst_image_infos = api.image.upload_paths(
         dataset_id=dataset.id, names=img_names, paths=img_paths, metas=img_metas
     )
