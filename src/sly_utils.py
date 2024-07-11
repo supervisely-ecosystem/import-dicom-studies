@@ -61,7 +61,7 @@ def import_images(
                 group_tag_name=g.GROUP_TAG_NAME,
             )
         except Exception as e:
-            sly.logger.warning(f"File '{image_path}' will be skipped due to: {str(e)}")
+            sly.logger.warning(f"File '{image_path}' will be skipped due to: {repr(e)}")
             continue
 
         img_paths.extend(image_paths)
@@ -81,7 +81,6 @@ def import_images(
         api.dataset.remove(dataset.id)
         raise FileNotFoundError("Nothing to import")
 
-    # Upload the images and annotations to the project
     dst_image_infos = api.image.upload_paths(
         dataset_id=dataset.id, names=img_names, paths=img_paths, metas=img_metas
     )
@@ -428,6 +427,7 @@ def dcm2nrrd(
     """Converts DICOM data to nrrd format and returns image paths, image names, and image annotations."""
     dcm = pydicom.read_file(image_path)
     dcm_tags, dcm_meta = create_dcm_tags(dcm)
+    
     pixel_data_list = [dcm.pixel_array]
 
     if len(dcm.pixel_array.shape) == 3:
@@ -495,10 +495,10 @@ def dcm2nrrd(
     return save_paths, image_names, anns, dcm_meta
 
 
-def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]:
+def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]: # ! Incorrect return type, to fix.
     """Create tags from DICOM metadata."""
     if g.ADD_DCM_TAGS == g.DO_NOT_ADD:
-        return None
+        return [], {}
 
     tags_from_dcm, dcm_tags_dict = [], {}
     if g.ADD_DCM_TAGS == g.ADD_ALL:
