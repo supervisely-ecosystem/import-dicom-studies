@@ -82,9 +82,12 @@ def import_images(
         raise FileNotFoundError("Nothing to import")
 
     # Upload the images and annotations to the project
-    dst_image_infos = api.image.upload_paths(
-        dataset_id=dataset.id, names=img_names, paths=img_paths, metas=img_metas
-    )
+    if not img_metas:
+        dst_image_infos = api.image.upload_paths(dataset_id=dataset.id, names=img_names, paths=img_paths)
+    else:
+        dst_image_infos = api.image.upload_paths(
+            dataset_id=dataset.id, names=img_names, paths=img_paths, metas=img_metas
+        )
     dst_image_ids = [img_info.id for img_info in dst_image_infos]
 
     # Merge meta from annotations (if supervisely format) with other tags
