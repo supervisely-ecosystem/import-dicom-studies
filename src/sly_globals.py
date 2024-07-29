@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 from supervisely.app.v1.app_service import AppService
 from supervisely.io.fs import mkdir
 
+from workflow import Workflow
+
 if sly.is_development():
     load_dotenv("local.env")
     load_dotenv(os.path.expanduser("~/supervisely.env"))
@@ -14,6 +16,7 @@ if sly.is_development():
 
 my_app: AppService = AppService()
 api = sly.Api.from_env()
+workflow = Workflow(api)
 
 TEAM_ID = sly.env.team_id()
 WORKSPACE_ID = sly.env.workspace_id()
