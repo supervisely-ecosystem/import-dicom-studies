@@ -60,6 +60,7 @@ def import_dicom_studies(
                 title = f"Failed to import DICOM data."
                 description = "Read the app overview to prepare your data for import."
                 raise Exception(f"{title} {description}")
+            g.workflow.add_output(g.project_id)
         remove_dir(project_dir)
         g.my_app.stop()
 
