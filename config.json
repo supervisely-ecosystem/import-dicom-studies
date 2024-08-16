@@ -1,11 +1,15 @@
 {
   "name": "Import DICOM studies",
   "type": "app",
-  "categories": ["import", "images", "dicom"],
+  "categories": [
+    "import",
+    "images",
+    "dicom"
+  ],
   "description": "Creates project with images grouped by selected metadata, converting DICOM data to NRRD format in the process.",
-  "docker_image": "supervisely/import-export:6.73.141",
+  "docker_image": "supervisely/import-export:6.73.160",
   "min_agent_version": "6.7.4",
-  "min_instance_version": "6.8.48",
+  "min_instance_version": "6.11.8",
   "main_script": "src/main.py",
   "modal_template": "src/modal.html",
   "modal_template_state": {
@@ -24,7 +28,12 @@
   "headless": true,
   "context_menu": {
     "context_category": "Import",
-    "target": ["files_folder", "files_file", "agent_folder", "agent_file"]
+    "target": [
+      "files_folder",
+      "files_file",
+      "agent_folder",
+      "agent_file"
+    ]
   },
   "poster": "https://user-images.githubusercontent.com/48245050/182844433-c620c1fc-76f4-4480-8461-984b8b713058.jpg"
 }
