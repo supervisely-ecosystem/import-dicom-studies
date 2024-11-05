@@ -10,11 +10,11 @@
   <a href="#How-To-Use">How To Use</a>
 </p>
   
-[![](https://img.shields.io/badge/supervisely-ecosystem-brightgreen)](https://ecosystem.supervise.ly/apps/supervisely-ecosystem/import-dicom-studies)
-[![](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://supervise.ly/slack)
+[![](https://img.shields.io/badge/supervisely-ecosystem-brightgreen)](https://ecosystem.supervisely.com/apps/supervisely-ecosystem/import-dicom-studies)
+[![](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://supervisely.com/slack)
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/supervisely-ecosystem/import-dicom-studies)
-[![views](https://app.supervise.ly/img/badges/views/supervisely-ecosystem/import-dicom-studies.png)](https://supervise.ly)
-[![runs](https://app.supervise.ly/img/badges/runs/supervisely-ecosystem/import-dicom-studies.png)](https://supervise.ly)
+[![views](https://app.supervisely.com/img/badges/views/supervisely-ecosystem/import-dicom-studies.png)](https://supervisely.com)
+[![runs](https://app.supervisely.com/img/badges/runs/supervisely-ecosystem/import-dicom-studies.png)](https://supervisely.com)
 
 </div>
 
@@ -33,16 +33,16 @@ Application key points:
 - Images will be grouped by selected tag's value
 - Supports `DICOM` files without extention e.g. `1.2.3.4.5.6.10.10.100.110.10000.00000000000000.0000`
 - Converts `DICOM` to `nrrd` format
-- Result project can be exported only with [Export to Supervisely format](https://ecosystem.supervise.ly/apps/export-to-supervisely-format) app
+- Result project can be exported only with [Export to Supervisely format](https://ecosystem.supervisely.com/apps/export-to-supervisely-format) app
 
-Learn more how to deal with images groups in [Import images groups](https://ecosystem.supervise.ly/apps/import-images-groups) readme
+Learn more how to deal with images groups in [Import images groups](https://ecosystem.supervisely.com/apps/import-images-groups) readme
 
-🏷️ Starting from version `v1.2.0` application support annotations in supervisely format if the corresponding option is selected in modal window during application launch. Learn more about Supervisely project structure [here](https://developer.supervise.ly/api-references/supervisely-annotation-json-format/project-structure).
+🏷️ Starting from version `v1.2.0` application support annotations in supervisely format if the corresponding option is selected in modal window during application launch. Learn more about Supervisely project structure [here](https://developer.supervisely.com/api-references/supervisely-annotation-json-format/project-structure).
 
 🏋️ Starting from version `v1.1.0` application supports import from special directory on your local computer. It is made for Enterprise Edition customers who need to upload tens or even hundreds of gigabytes of data without using drag-ang-drop mechanism:
 
 1. Run agent on your computer where data is stored. Watch [how-to video](https://youtu.be/aO7Zc4kTrVg).
-2. Copy your data to special folder on your computer that was created by agent. Agent mounts this directory to your Supervisely instance and it becomes accessible in Team Files. Learn more [in documentation](https://docs.supervise.ly/customization/agents/agent-storage). Watch [how-to video](https://youtu.be/63Kc8Xq9H0U).
+2. Copy your data to special folder on your computer that was created by agent. Agent mounts this directory to your Supervisely instance and it becomes accessible in Team Files. Learn more [in documentation](https://docs.supervisely.com/customization/agents/agent-storage). Watch [how-to video](https://youtu.be/63Kc8Xq9H0U).
 3. Go to `Team Files` -> `Supervisely Agent` and find your folder there.
 4. Right click to open context menu and start app. Now app will upload data directly from your computer to the platform.
 
@@ -66,7 +66,7 @@ Archive structure:
          ┗ 📜1.2.3.4.5.6.10.10.100.110.10000.00000000000000.0000
 ```
 
-2. With annotations (supervisely format). [Learn more here.](https://docs.supervise.ly/data-organization/00_ann_format_navi)
+2. With annotations (supervisely format). [Learn more here.](https://docs.supervisely.com/data-organization/00_ann_format_navi)
 
 ```text
   📦my_project.zip
@@ -123,7 +123,7 @@ Example of created project using the example below and tag `AcquisitionDate` as 
 |                   IMG-0001-00004.nrrd                    | `AcquisitionDate`: `20200928` |
 | 1.2.3.4.5.6.10.10.100.110.10000.00000000000000.0000.nrrd |
 
-2. With annotations (supervisely format). [Learn more here.](https://docs.supervise.ly/data-organization/00_ann_format_navi)
+2. With annotations (supervisely format). [Learn more here.](https://docs.supervisely.com/data-organization/00_ann_format_navi)
 
 ```text
   📂cardio_project
@@ -146,7 +146,7 @@ Example of created project using the example below and tag `AcquisitionDate` as 
 Structure explained:
 
 1. Archive must contain only 1 project directory. Name of the project directory will be used for created supervisely project.
-2. Inside project directory must be `meta.json` file and dataset directory. Name of the dataset directory will be used for created dataset. Inside dataset directory must be `ann` and `img` subdirectories with `.json` and `DICOM` files. Learn more about [Supervisely Format](https://docs.supervise.ly/data-organization/00_ann_format_navi).
+2. Inside project directory must be `meta.json` file and dataset directory. Name of the dataset directory will be used for created dataset. Inside dataset directory must be `ann` and `img` subdirectories with `.json` and `DICOM` files. Learn more about [Supervisely Format](https://docs.supervisely.com/data-organization/00_ann_format_navi).
 3. Files will be grouped using `DICOM` metadata. If `DICOM` file doesn't contain inputted metadata field, it will be uploaded without tag.
 
 Example of created project using the example below and tag `AcquisitionDate` as user input:
@@ -179,7 +179,7 @@ Prepare project and drag and drop it to `Team Files`.
 
 # How To Run
 
-**Step 1.** Add [Import DICOM studies](https://ecosystem.supervise.ly/apps/import-dicom-studies) app to your team from Ecosystem
+**Step 1.** Add [Import DICOM studies](https://ecosystem.supervisely.com/apps/import-dicom-studies) app to your team from Ecosystem
 
 <img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/import-dicom-studies" src="https://i.imgur.com/hEeXmrM.png" width="70%"/>
 
