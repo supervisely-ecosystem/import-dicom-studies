@@ -10,7 +10,7 @@
   <a href="#How-To-Use">How To Use</a>
 </p>
   
-[![](https://img.shields.io/badge/supervisely-ecosystem-brightgreen)](https://ecosystem.supervisely.com/apps/supervisely-ecosystem/import-dicom-studies)
+[![](https://img.shields.io/badge/supervisely-ecosystem-brightgreen)](../../../../supervisely-ecosystem/import-dicom-studies)
 [![](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://supervisely.com/slack)
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/supervisely-ecosystem/import-dicom-studies)
 [![views](https://app.supervisely.com/img/badges/views/supervisely-ecosystem/import-dicom-studies.png)](https://supervisely.com)
@@ -33,9 +33,9 @@ Application key points:
 - Images will be grouped by selected tag's value
 - Supports `DICOM` files without extention e.g. `1.2.3.4.5.6.10.10.100.110.10000.00000000000000.0000`
 - Converts `DICOM` to `nrrd` format
-- Result project can be exported only with [Export to Supervisely format](https://ecosystem.supervisely.com/apps/export-to-supervisely-format) app
+- Result project can be exported only with [Export to Supervisely format](../../../../supervisely-ecosystem/export-to-supervisely-format) app
 
-Learn more how to deal with images groups in [Import images groups](https://ecosystem.supervisely.com/apps/import-images-groups) readme
+Learn more how to deal with images groups in [Import images groups](../../../../supervisely-ecosystem/import-images-groups) readme
 
 🏷️ Starting from version `v1.2.0` application support annotations in supervisely format if the corresponding option is selected in modal window during application launch. Learn more about Supervisely project structure [here](https://developer.supervisely.com/api-references/supervisely-annotation-json-format/project-structure).
 
@@ -179,7 +179,7 @@ Prepare project and drag and drop it to `Team Files`.
 
 # How To Run
 
-**Step 1.** Add [Import DICOM studies](https://ecosystem.supervisely.com/apps/import-dicom-studies) app to your team from Ecosystem
+**Step 1.** Add [Import DICOM studies](../../../../supervisely-ecosystem/import-dicom-studies) app to your team from Ecosystem
 
 <img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/import-dicom-studies" src="https://i.imgur.com/hEeXmrM.png" width="70%"/>
 
