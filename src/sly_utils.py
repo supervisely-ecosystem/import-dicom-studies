@@ -370,12 +370,22 @@ def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) ->
             g.my_app.stop()
             return None
         silent_remove(save_archive_path)
-        if len(os.listdir(save_path)) > 1:
-            g.my_app.logger.error("There must be only 1 project directory in the archive")
-            raise Exception("There must be only 1 project directory in the archive")
+        entries = os.listdir(save_path)
 
-        project_name = os.listdir(save_path)[0]
-        project_path = join(save_path, project_name)
+        project_path = None
+        if len(entries) == 0:
+            raise RuntimeError("Archive unpacked but contains no usable files")
+
+        if len(entries) == 1:
+            return join(save_path, entries[0])
+
+        top_level_dcms = [f for f in os.listdir(save_path) if is_dicom_file(join(save_path, f))]
+        if len(top_level_dcms) > 0:
+            return save_path
+        g.my_app.logger.warning(
+            "Couldn't reliably detect project directory in archive; using first entry"
+        )
+        return join(save_path, entries[0])
     return project_path
 
 
