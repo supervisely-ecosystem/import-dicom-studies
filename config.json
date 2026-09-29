@@ -7,9 +7,9 @@
     "dicom"
   ],
   "description": "Creates project with images grouped by selected metadata, converting DICOM data to NRRD format in the process.",
-  "docker_image": "supervisely/import-export:6.73.564",
+  "docker_image": "supervisely/import-export:6.74.34",
   "min_agent_version": "6.7.4",
-  "instance_version": "6.15.60",
+  "instance_version": "6.17.22",
   "main_script": "src/main.py",
   "modal_template": "src/modal.html",
   "modal_template_state": {
