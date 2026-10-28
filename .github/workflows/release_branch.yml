@@ -6,7 +6,15 @@ on:
       - main
       - master
 jobs:
+  # Builds supervisely/<repo>:<config.json docker_image tag> only if the tag is not on Docker Hub
+  # yet, so a branch release (dev check) can start before the first version release.
+  build-image:
+    uses: supervisely-ecosystem/workflows/.github/workflows/build_image_from_template.yml@master
+    with:
+      image_name: "${{ github.event.repository.name }}"
+      cve_checks: false
   Supervisely-Release:
+    needs: build-image
     uses: supervisely-ecosystem/workflows/.github/workflows/common.yml@master
     secrets:
       SUPERVISELY_DEV_API_TOKEN: "${{ secrets.SUPERVISELY_DEV_API_TOKEN }}"
