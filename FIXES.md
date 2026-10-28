@@ -109,3 +109,11 @@ without `--version ... --branch` (published v1.3.6) for comparison. `P=/agents-s
 
 Check after each run: task status/output, project tree and image sizes (`api.image.get_list`), tags of one image.
 Source folders must be unchanged in every case.
+
+## Branch image (test tag)
+
+On this branch `config.json` uses `supervisely/import-dicom-studies:test-5a1eb1e8`. `release_branch.yml` follows
+`workflows/templates/build_release_branch.yml`: on push it builds that tag, named by the sha256 of
+`dev_requirements.txt`, and only if the tag is not on Docker Hub yet. Dev agents pull images "if not present", so
+every dependency change gets a new tag. **Before merging, set `docker_image` back to `supervisely/import-dicom-studies:6.74.34`**; `release.yml`
+builds that tag on the version release.
