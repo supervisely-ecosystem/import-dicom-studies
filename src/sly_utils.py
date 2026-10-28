@@ -464,8 +464,10 @@ def dcm2nrrd(
         original_name = get_file_name_with_ext(image_path)
 
         if frames == 1:
-            pixel_data = sly.image.rotate(img=pixel_data, degrees_angle=270)
-            pixel_data = sly.image.fliplr(pixel_data)
+            # Rows x Columns -> Columns x Rows, the axis order nrrd.write expects (x first).
+            # Was sly.image.rotate(270) + fliplr: the same transposition, but through an
+            # interpolating warp that added a black column (and row) and needed scikit-image.
+            pixel_data = np.swapaxes(pixel_data, 0, 1)
             image_name = f"{original_name}.nrrd"
         else:
             pixel_data = np.squeeze(pixel_data, frame_axis)
