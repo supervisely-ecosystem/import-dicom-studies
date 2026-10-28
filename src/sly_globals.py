@@ -1,6 +1,5 @@
 import json
 import os
-from distutils.util import strtobool
 
 import supervisely as sly
 from dotenv import load_dotenv
@@ -17,6 +16,13 @@ if sly.is_development():
 my_app: AppService = AppService()
 api = sly.Api.from_env()
 workflow = Workflow(api)
+
+
+
+def str_to_bool(value) -> bool:
+    """distutils.util.strtobool without distutils (removed in Python 3.12)."""
+    return str(value).strip().lower() in ("y", "yes", "t", "true", "on", "1")
+
 
 TEAM_ID = sly.env.team_id()
 WORKSPACE_ID = sly.env.workspace_id()
@@ -52,7 +58,7 @@ if INPUT_DIR:
 else:
     IS_ON_AGENT = api.file.is_on_agent(INPUT_FILE)
 
-WITH_ANNS: bool = bool(strtobool(os.environ.get("modal.state.withAnns")))
+WITH_ANNS: bool = str_to_bool(os.environ.get("modal.state.withAnns"))
 
 STORAGE_DIR: str = my_app.data_dir
 mkdir(STORAGE_DIR, True)

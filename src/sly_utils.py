@@ -238,7 +238,7 @@ def check_extension_in_folder(folder_path: str, extension: str) -> bool:
 def is_dicom_file(path: str, verbose: bool = False) -> bool:
     """Checks if file is DICOM file by given path."""
     try:
-        pydicom.read_file(str(Path(path).resolve()), stop_before_pixels=True)
+        pydicom.dcmread(str(Path(path).resolve()), stop_before_pixels=True)
         result = True
     except Exception as ex:
         if verbose:
@@ -425,7 +425,7 @@ def dcm2nrrd(
     group_tag_name: str,
 ) -> Tuple[str, str, sly.Annotation]:
     """Converts DICOM data to nrrd format and returns image paths, image names, and image annotations."""
-    dcm = pydicom.read_file(image_path)
+    dcm = pydicom.dcmread(image_path)
     dcm_tags, dcm_meta = create_dcm_tags(dcm)
     
     pixel_data_list = [dcm.pixel_array]
