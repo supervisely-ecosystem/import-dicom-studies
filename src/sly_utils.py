@@ -24,8 +24,8 @@ from tqdm import tqdm
 import sly_globals as g
 
 
-def import_dataset(api: sly.Api, dataset_path: str) -> None:
-    """Imports a single dataset into the project."""
+def import_dataset(api: sly.Api, dataset_path: str) -> List[str]:
+    """Imports a single dataset into the project. Returns the DICOM files that failed."""
     # Create a new dataset in the project
     dataset_name = basename(normpath(dataset_path))
     dataset_info = api.dataset.create(
@@ -37,19 +37,30 @@ def import_dataset(api: sly.Api, dataset_path: str) -> None:
     ds_images_paths, ds_annotations_paths = get_paths(dataset_path, with_anns=g.WITH_ANNS)
     batch_progress = tqdm(total=len(ds_images_paths), desc="Processing Images", unit="image")
 
+    uploaded, failed = 0, []
     for batch_imgs, batch_anns in zip(
         sly.batched(ds_images_paths, batch_size),
         sly.batched(ds_annotations_paths, batch_size),
     ):
-        import_images(api, dataset_info, batch_imgs, batch_anns)
+        batch_uploaded, batch_failed = import_images(api, dataset_info, batch_imgs, batch_anns)
+        uploaded += batch_uploaded
+        failed.extend(batch_failed)
         batch_progress.update(len(batch_imgs))
     batch_progress.close()
+
+    if uploaded == 0:
+        # only the empty dataset this function created is removed, never earlier batches
+        api.dataset.remove(dataset_info.id)
+        sly.logger.warning(f"Skipping dataset '{dataset_path}', nothing to import")
+    return failed
 
 
 def import_images(
     api: sly.Api, dataset: sly.DatasetInfo, batch_imgs: list, batch_anns: list
-) -> None:
+) -> Tuple[int, List[str]]:
+    """Converts and uploads one batch. Returns (images uploaded, DICOM files that failed)."""
     img_paths = []
+    failed = []
     img_names = []
     anns = []
     img_metas = []
@@ -62,6 +73,7 @@ def import_images(
             )
         except Exception as e:
             sly.logger.warning(f"File '{image_path}' will be skipped due to: {repr(e)}")
+            failed.append(image_path)
             continue
 
         img_paths.extend(image_paths)
@@ -78,8 +90,7 @@ def import_images(
             anns.extend(anns_from_dcm)
 
     if len(img_paths) == 0:
-        api.dataset.remove(dataset.id)
-        raise FileNotFoundError("Nothing to import")
+        return 0, failed
 
     dst_image_infos = api.image.upload_paths(
         dataset_id=dataset.id, names=img_names, paths=img_paths, metas=img_metas
@@ -101,6 +112,7 @@ def import_images(
     api.project.images_grouping(id=g.project_id, enable=True, tag_name=g.GROUP_TAG_NAME)
 
     api.annotation.upload_anns(img_ids=dst_image_ids, anns=anns)
+    return len(dst_image_ids), failed
 
 
 def get_paths(dataset_path: str, with_anns: bool = False) -> Tuple[List[str], List[str]]:

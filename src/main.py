@@ -46,21 +46,27 @@ def import_dicom_studies(
             )
             g.project_id = project.id
             ds_progress = tqdm(total=len(datasets_paths), desc="Importing Datasets", unit="dataset")
+            failed = []
             for dataset_path in datasets_paths:
-                try:
-                    f.import_dataset(api, dataset_path)
-                except FileNotFoundError as e:
-                    if str(e) == "Nothing to import":
-                        sly.logger.warning(f"Skipping dataset '{dataset_path}', nothing to import")
-                        continue
+                failed.extend(f.import_dataset(api, dataset_path))
                 ds_progress.update(1)
             ds_progress.close()
             if api.project.get_datasets_count(project.id) == 0:
                 api.project.remove(project.id)
+                remove_dir(project_dir)
                 title = f"Failed to import DICOM data."
                 description = "Read the app overview to prepare your data for import."
                 raise Exception(f"{title} {description}")
             g.workflow.add_output(g.project_id)
+            if failed:
+                remove_dir(project_dir)
+                names = [os.path.relpath(path, project_dir) for path in failed]
+                shown = ", ".join(names[:10]) + (f" and {len(names) - 10} more" if len(names) > 10 else "")
+                raise RuntimeError(
+                    f"{len(failed)} DICOM file(s) could not be converted and were not imported: "
+                    f"{shown}. The other files are in project '{project.name}' (id {project.id}); "
+                    "see the task log for the reason of each file."
+                )
         remove_dir(project_dir)
         g.my_app.stop()
 
