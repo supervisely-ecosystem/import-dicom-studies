@@ -76,18 +76,26 @@ def import_images(
             failed.append(image_path)
             continue
 
+        if g.WITH_ANNS and annotation_path is not None:
+            ann = sly.Annotation.load_json_file(annotation_path, g.project_meta_from_sly_format)
+            if len(anns_from_dcm) > 1 and len(ann.labels) > 0:
+                # one annotation file for several frames: there is no way to tell which
+                # frame the labels belong to, so the file is not imported rather than guessed
+                sly.logger.warning(
+                    f"File '{image_path}' will be skipped: it has {len(anns_from_dcm)} frames "
+                    "and its Supervisely annotation has labels, which cannot be assigned to frames"
+                )
+                failed.append(image_path)
+                continue
+            # image tags of the annotation go to every frame
+            anns_from_dcm = [ann.merge(ann_dcm) for ann_dcm in anns_from_dcm]
+        elif g.WITH_ANNS:
+            sly.logger.warning(f"No annotation found for '{image_path}', importing it without one")
+
         img_paths.extend(image_paths)
         img_names.extend(image_names)
         img_metas.extend([dcm_meta for _ in image_paths])
-
-        if g.WITH_ANNS:
-            ann = sly.Annotation.load_json_file(annotation_path, g.project_meta_from_sly_format)
-
-            for ann_dcm in anns_from_dcm:
-                ann = ann.merge(ann_dcm)
-            anns.append(ann)
-        else:
-            anns.extend(anns_from_dcm)
+        anns.extend(anns_from_dcm)
 
     if len(img_paths) == 0:
         return 0, failed
@@ -138,17 +146,29 @@ def get_paths(dataset_path: str, with_anns: bool = False) -> Tuple[List[str], Li
     )
 
     if with_anns:
-        ds_annotations_paths = sorted(
-            [
-                join(ann_dirname, item)
-                for item in os.listdir(ann_dirname)
-                if file_exists(join(ann_dirname, item)) and is_json_file(join(ann_dirname, item))
-            ]
-        )
+        ds_annotations_paths = [find_annotation(ann_dirname, path) for path in ds_images_paths]
+        matched = {path for path in ds_annotations_paths if path is not None}
+        for item in sorted(os.listdir(ann_dirname)):
+            if join(ann_dirname, item) not in matched:
+                sly.logger.warning(f"Annotation '{item}' matches no DICOM file in '{img_dirname}'")
     else:
         ds_annotations_paths = [None for _ in ds_images_paths]
 
     return ds_images_paths, ds_annotations_paths
+
+
+def find_annotation(ann_dir: str, image_path: str):
+    """ann/<image name>.json, or ann/<image name without extension>.json (README layout)."""
+    name = get_file_name_with_ext(image_path)
+    candidates = [f"{name}.json"]
+    stem, ext = os.path.splitext(name)
+    if ext:
+        candidates.append(f"{stem}.json")
+    for candidate in candidates:
+        path = join(ann_dir, candidate)
+        if file_exists(path) and is_json_file(path):
+            return path
+    return None
 
 
 def remove_sly_tag_name_if_not_unique(sly_meta, new_meta):
