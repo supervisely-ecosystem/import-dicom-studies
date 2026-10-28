@@ -1,4 +1,5 @@
 import os
+import sys
 
 import supervisely as sly
 from supervisely.io.fs import remove_dir
@@ -80,3 +81,9 @@ def main():
 
 if __name__ == "__main__":
     sly.main_wrapper("main", main)
+    # AppService cannot release its executor threads on Python >= 3.13 (they wait on the agent
+    # stream), so the interpreter would wait for them forever. main_wrapper exits with os._exit(1)
+    # on errors; exit the same way on success.
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(0)

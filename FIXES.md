@@ -123,3 +123,13 @@ builds that tag on the version release.
 The first branch release (`test-5a1eb1e8`) crashed at startup on dev: `AppService` needs `protobuf`, which the
 hardened base does not ship. `dev_requirements.txt` now adds `protobuf==3.20.3`, as the cloud-import apps do, and
 `tests/test_runtime.py` runs a real AppService event loop. That test fails without protobuf.
+
+## Dev check 2026-10-28: the process did not exit
+
+On `test-554f2777` every successful import finished its work, logged "Successfully shutdown the APP service." and
+then the task stayed `started`. The cause is in the SDK: `AppService._shutdown` releases executor threads through
+`thread._tstate_lock`, which Python 3.13+ no longer has (the error is swallowed). The consumer thread stays
+blocked on the agent stream, and the interpreter waits for it at exit. This affects every AppService (app v1) app
+on the Python 3.14 hardened base. The app now ends with `os._exit(0)` after `main_wrapper`, which already uses
+`os._exit(1)` on errors. `tests/test_exit.py` reproduces the hang in a subprocess and checks the exit. SDK fix: see
+`ecosystem-fleet/TODO.md`.
