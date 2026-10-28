@@ -24,8 +24,8 @@ from tqdm import tqdm
 import sly_globals as g
 
 
-def import_dataset(api: sly.Api, dataset_path: str) -> None:
-    """Imports a single dataset into the project."""
+def import_dataset(api: sly.Api, dataset_path: str) -> List[str]:
+    """Imports a single dataset into the project. Returns the DICOM files that failed."""
     # Create a new dataset in the project
     dataset_name = basename(normpath(dataset_path))
     dataset_info = api.dataset.create(
@@ -37,19 +37,30 @@ def import_dataset(api: sly.Api, dataset_path: str) -> None:
     ds_images_paths, ds_annotations_paths = get_paths(dataset_path, with_anns=g.WITH_ANNS)
     batch_progress = tqdm(total=len(ds_images_paths), desc="Processing Images", unit="image")
 
+    uploaded, failed = 0, []
     for batch_imgs, batch_anns in zip(
         sly.batched(ds_images_paths, batch_size),
         sly.batched(ds_annotations_paths, batch_size),
     ):
-        import_images(api, dataset_info, batch_imgs, batch_anns)
+        batch_uploaded, batch_failed = import_images(api, dataset_info, batch_imgs, batch_anns)
+        uploaded += batch_uploaded
+        failed.extend(batch_failed)
         batch_progress.update(len(batch_imgs))
     batch_progress.close()
+
+    if uploaded == 0:
+        # only the empty dataset this function created is removed, never earlier batches
+        api.dataset.remove(dataset_info.id)
+        sly.logger.warning(f"Skipping dataset '{dataset_path}', nothing to import")
+    return failed
 
 
 def import_images(
     api: sly.Api, dataset: sly.DatasetInfo, batch_imgs: list, batch_anns: list
-) -> None:
+) -> Tuple[int, List[str]]:
+    """Converts and uploads one batch. Returns (images uploaded, DICOM files that failed)."""
     img_paths = []
+    failed = []
     img_names = []
     anns = []
     img_metas = []
@@ -62,24 +73,32 @@ def import_images(
             )
         except Exception as e:
             sly.logger.warning(f"File '{image_path}' will be skipped due to: {repr(e)}")
+            failed.append(image_path)
             continue
+
+        if g.WITH_ANNS and annotation_path is not None:
+            ann = sly.Annotation.load_json_file(annotation_path, g.project_meta_from_sly_format)
+            if len(anns_from_dcm) > 1 and len(ann.labels) > 0:
+                # one annotation file for several frames: there is no way to tell which
+                # frame the labels belong to, so the file is not imported rather than guessed
+                sly.logger.warning(
+                    f"File '{image_path}' will be skipped: it has {len(anns_from_dcm)} frames "
+                    "and its Supervisely annotation has labels, which cannot be assigned to frames"
+                )
+                failed.append(image_path)
+                continue
+            # image tags of the annotation go to every frame
+            anns_from_dcm = [ann.merge(ann_dcm) for ann_dcm in anns_from_dcm]
+        elif g.WITH_ANNS:
+            sly.logger.warning(f"No annotation found for '{image_path}', importing it without one")
 
         img_paths.extend(image_paths)
         img_names.extend(image_names)
         img_metas.extend([dcm_meta for _ in image_paths])
-
-        if g.WITH_ANNS:
-            ann = sly.Annotation.load_json_file(annotation_path, g.project_meta_from_sly_format)
-
-            for ann_dcm in anns_from_dcm:
-                ann = ann.merge(ann_dcm)
-            anns.append(ann)
-        else:
-            anns.extend(anns_from_dcm)
+        anns.extend(anns_from_dcm)
 
     if len(img_paths) == 0:
-        api.dataset.remove(dataset.id)
-        raise FileNotFoundError("Nothing to import")
+        return 0, failed
 
     dst_image_infos = api.image.upload_paths(
         dataset_id=dataset.id, names=img_names, paths=img_paths, metas=img_metas
@@ -101,6 +120,7 @@ def import_images(
     api.project.images_grouping(id=g.project_id, enable=True, tag_name=g.GROUP_TAG_NAME)
 
     api.annotation.upload_anns(img_ids=dst_image_ids, anns=anns)
+    return len(dst_image_ids), failed
 
 
 def get_paths(dataset_path: str, with_anns: bool = False) -> Tuple[List[str], List[str]]:
@@ -126,27 +146,39 @@ def get_paths(dataset_path: str, with_anns: bool = False) -> Tuple[List[str], Li
     )
 
     if with_anns:
-        ds_annotations_paths = sorted(
-            [
-                join(ann_dirname, item)
-                for item in os.listdir(ann_dirname)
-                if file_exists(join(ann_dirname, item)) and is_json_file(join(ann_dirname, item))
-            ]
-        )
+        ds_annotations_paths = [find_annotation(ann_dirname, path) for path in ds_images_paths]
+        matched = {path for path in ds_annotations_paths if path is not None}
+        for item in sorted(os.listdir(ann_dirname)):
+            if join(ann_dirname, item) not in matched:
+                sly.logger.warning(f"Annotation '{item}' matches no DICOM file in '{img_dirname}'")
     else:
         ds_annotations_paths = [None for _ in ds_images_paths]
 
     return ds_images_paths, ds_annotations_paths
 
 
+def find_annotation(ann_dir: str, image_path: str):
+    """ann/<image name>.json, or ann/<image name without extension>.json (README layout)."""
+    name = get_file_name_with_ext(image_path)
+    candidates = [f"{name}.json"]
+    stem, ext = os.path.splitext(name)
+    if ext:
+        candidates.append(f"{stem}.json")
+    for candidate in candidates:
+        path = join(ann_dir, candidate)
+        if file_exists(path) and is_json_file(path):
+            return path
+    return None
+
+
 def remove_sly_tag_name_if_not_unique(sly_meta, new_meta):
-    for s_tag in sly_meta["tags"]:
-        for n_tag in new_meta["tags"]:
-            if s_tag["name"] == n_tag["name"]:
-                sly_meta["tags"].remove(s_tag)
-                sly.logger.warning(
-                    f"There was tag [{s_tag['name']}] in Supervisely meta with the same name as the grouping tag on the import! Supervisely tag was replaced with import tag. If you want to separate them, you need to manually correct the annotation and meta .json files, or select a different grouping tag on import."
-                )
+    new_names = {n_tag["name"] for n_tag in new_meta["tags"]}
+    for s_tag in list(sly_meta["tags"]):  # iterate over a copy: the list is modified
+        if s_tag["name"] in new_names:
+            sly_meta["tags"].remove(s_tag)
+            sly.logger.warning(
+                f"There was tag [{s_tag['name']}] in Supervisely meta with the same name as the grouping tag on the import! Supervisely tag was replaced with import tag. If you want to separate them, you need to manually correct the annotation and meta .json files, or select a different grouping tag on import."
+            )
 
 
 def check_unique_name(lst: List[Dict[str, str]]) -> None:
@@ -238,7 +270,7 @@ def check_extension_in_folder(folder_path: str, extension: str) -> bool:
 def is_dicom_file(path: str, verbose: bool = False) -> bool:
     """Checks if file is DICOM file by given path."""
     try:
-        pydicom.read_file(str(Path(path).resolve()), stop_before_pixels=True)
+        pydicom.dcmread(str(Path(path).resolve()), stop_before_pixels=True)
         result = True
     except Exception as ex:
         if verbose:
@@ -265,6 +297,49 @@ def is_archive(path, local=True):
     return get_file_ext(path) in [".zip", ".tar"] or path.endswith(".tar.gz")
 
 
+def _is_inside(path: str, directory: str) -> bool:
+    directory = os.path.realpath(directory)
+    return os.path.commonpath([os.path.realpath(path), directory]) == directory
+
+
+def safe_unpack_archive(archive_path: str, target_dir: str) -> None:
+    """Extracts a zip/tar archive from Team Files without writing outside target_dir.
+
+    Tar members with absolute paths, '..' or links pointing outside the target, and device
+    files are refused (tarfile's "data" filter, PEP 706); zip members are checked the same way.
+    The whole archive is refused rather than imported in part.
+    """
+    try:
+        if zipfile.is_zipfile(archive_path):
+            with zipfile.ZipFile(archive_path) as archive:
+                for name in archive.namelist():
+                    if not _is_inside(os.path.join(target_dir, name), target_dir):
+                        raise ValueError(f"member '{name}' points outside the extraction folder")
+                archive.extractall(target_dir)
+        else:
+            with tarfile.open(archive_path) as archive:
+                if hasattr(tarfile, "data_filter"):
+                    archive.extractall(target_dir, filter="data")
+                else:  # Python without PEP 706 (< 3.8.17)
+                    for member in archive.getmembers():
+                        target = os.path.join(target_dir, member.name)
+                        if (
+                            os.path.isabs(member.name)
+                            or not _is_inside(target, target_dir)
+                            or member.issym()
+                            or member.islnk()
+                            or member.isdev()
+                        ):
+                            raise ValueError(f"member '{member.name}' is not allowed")
+                    archive.extractall(target_dir)
+    except (ValueError, tarfile.TarError) as e:
+        raise RuntimeError(
+            f"Archive '{get_file_name_with_ext(archive_path)}' was not imported: it contains "
+            f"unsafe paths ({e}). Repack it with relative paths inside one project folder."
+        ) from e
+    sly.fs.remove_junk_from_dir(target_dir)
+
+
 def handle_input_path(api: sly.Api) -> str:
     """Handle input path."""
     if not g.IS_ON_AGENT:
@@ -277,7 +352,7 @@ def handle_input_path(api: sly.Api) -> str:
         elif g.INPUT_FILE:
             if not is_archive(g.INPUT_FILE, local=False):
                 sly.logger.info("File mode is selected, but uploaded file is not archive.")
-                if g.INPUT_FILE.lower() == "meta.json":
+                if basename(g.INPUT_FILE).lower() == "meta.json":
                     sly.logger.info("Switching to folder mode.")
                     g.INPUT_FILE, g.INPUT_DIR = None, dirname(g.INPUT_FILE)
                 elif get_file_ext(g.INPUT_FILE) in [".json", ".dcm"]:
@@ -360,7 +435,7 @@ def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) ->
         )
         progress_cb.close()
         if is_archive(save_archive_path):
-            sly.fs.unpack_archive(save_archive_path, save_path, remove_junk=True)
+            safe_unpack_archive(save_archive_path, save_path)
         else:
             silent_remove(save_archive_path)
             title = "Incorrect input data: file is not an archive."
@@ -425,7 +500,7 @@ def dcm2nrrd(
     group_tag_name: str,
 ) -> Tuple[str, str, sly.Annotation]:
     """Converts DICOM data to nrrd format and returns image paths, image names, and image annotations."""
-    dcm = pydicom.read_file(image_path)
+    dcm = pydicom.dcmread(image_path)
     dcm_tags, dcm_meta = create_dcm_tags(dcm)
     
     pixel_data_list = [dcm.pixel_array]
@@ -464,8 +539,10 @@ def dcm2nrrd(
         original_name = get_file_name_with_ext(image_path)
 
         if frames == 1:
-            pixel_data = sly.image.rotate(img=pixel_data, degrees_angle=270)
-            pixel_data = sly.image.fliplr(pixel_data)
+            # Rows x Columns -> Columns x Rows, the axis order nrrd.write expects (x first).
+            # Was sly.image.rotate(270) + fliplr: the same transposition, but through an
+            # interpolating warp that added a black column (and row) and needed scikit-image.
+            pixel_data = np.swapaxes(pixel_data, 0, 1)
             image_name = f"{original_name}.nrrd"
         else:
             pixel_data = np.squeeze(pixel_data, frame_axis)
@@ -514,7 +591,10 @@ def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]: # ! Incorrect return typ
             if len(dcm_tag_value) > 255:
                 sly.logger.warn(f"Tag [{dcm_tag_name}] has too long value. Skipping tag.")
                 continue
-            if g.ADD_DCM_TAGS == g.ADD_ALL:
+            if g.ADD_DCM_TAGS == g.ADD_ALL or (
+                g.ADD_DCM_TAGS == g.ADD_ONLY_SPECIFIED
+                and (curr_tag.keyword in g.DCM_TAGS or dcm_tag_name in g.DCM_TAGS)
+            ):
                 tags_from_dcm.append((dcm_tag_name, dcm_tag_value))
             dcm_tags_dict[dcm_tag_name] = dcm_tag_value
         except:
