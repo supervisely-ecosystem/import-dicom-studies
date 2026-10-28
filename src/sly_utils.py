@@ -265,6 +265,49 @@ def is_archive(path, local=True):
     return get_file_ext(path) in [".zip", ".tar"] or path.endswith(".tar.gz")
 
 
+def _is_inside(path: str, directory: str) -> bool:
+    directory = os.path.realpath(directory)
+    return os.path.commonpath([os.path.realpath(path), directory]) == directory
+
+
+def safe_unpack_archive(archive_path: str, target_dir: str) -> None:
+    """Extracts a zip/tar archive from Team Files without writing outside target_dir.
+
+    Tar members with absolute paths, '..' or links pointing outside the target, and device
+    files are refused (tarfile's "data" filter, PEP 706); zip members are checked the same way.
+    The whole archive is refused rather than imported in part.
+    """
+    try:
+        if zipfile.is_zipfile(archive_path):
+            with zipfile.ZipFile(archive_path) as archive:
+                for name in archive.namelist():
+                    if not _is_inside(os.path.join(target_dir, name), target_dir):
+                        raise ValueError(f"member '{name}' points outside the extraction folder")
+                archive.extractall(target_dir)
+        else:
+            with tarfile.open(archive_path) as archive:
+                if hasattr(tarfile, "data_filter"):
+                    archive.extractall(target_dir, filter="data")
+                else:  # Python without PEP 706 (< 3.8.17)
+                    for member in archive.getmembers():
+                        target = os.path.join(target_dir, member.name)
+                        if (
+                            os.path.isabs(member.name)
+                            or not _is_inside(target, target_dir)
+                            or member.issym()
+                            or member.islnk()
+                            or member.isdev()
+                        ):
+                            raise ValueError(f"member '{member.name}' is not allowed")
+                    archive.extractall(target_dir)
+    except (ValueError, tarfile.TarError) as e:
+        raise RuntimeError(
+            f"Archive '{get_file_name_with_ext(archive_path)}' was not imported: it contains "
+            f"unsafe paths ({e}). Repack it with relative paths inside one project folder."
+        ) from e
+    sly.fs.remove_junk_from_dir(target_dir)
+
+
 def handle_input_path(api: sly.Api) -> str:
     """Handle input path."""
     if not g.IS_ON_AGENT:
@@ -360,7 +403,7 @@ def download_data_from_team_files(api: sly.Api, task_id: int, save_path: str) ->
         )
         progress_cb.close()
         if is_archive(save_archive_path):
-            sly.fs.unpack_archive(save_archive_path, save_path, remove_junk=True)
+            safe_unpack_archive(save_archive_path, save_path)
         else:
             silent_remove(save_archive_path)
             title = "Incorrect input data: file is not an archive."
