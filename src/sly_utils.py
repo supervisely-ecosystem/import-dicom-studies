@@ -352,7 +352,7 @@ def handle_input_path(api: sly.Api) -> str:
         elif g.INPUT_FILE:
             if not is_archive(g.INPUT_FILE, local=False):
                 sly.logger.info("File mode is selected, but uploaded file is not archive.")
-                if g.INPUT_FILE.lower() == "meta.json":
+                if basename(g.INPUT_FILE).lower() == "meta.json":
                     sly.logger.info("Switching to folder mode.")
                     g.INPUT_FILE, g.INPUT_DIR = None, dirname(g.INPUT_FILE)
                 elif get_file_ext(g.INPUT_FILE) in [".json", ".dcm"]:
