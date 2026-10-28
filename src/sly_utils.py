@@ -591,7 +591,10 @@ def create_dcm_tags(dcm: FileDataset) -> List[sly.Tag]: # ! Incorrect return typ
             if len(dcm_tag_value) > 255:
                 sly.logger.warn(f"Tag [{dcm_tag_name}] has too long value. Skipping tag.")
                 continue
-            if g.ADD_DCM_TAGS == g.ADD_ALL:
+            if g.ADD_DCM_TAGS == g.ADD_ALL or (
+                g.ADD_DCM_TAGS == g.ADD_ONLY_SPECIFIED
+                and (curr_tag.keyword in g.DCM_TAGS or dcm_tag_name in g.DCM_TAGS)
+            ):
                 tags_from_dcm.append((dcm_tag_name, dcm_tag_value))
             dcm_tags_dict[dcm_tag_name] = dcm_tag_value
         except:
