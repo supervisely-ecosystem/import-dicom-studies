@@ -172,13 +172,13 @@ def find_annotation(ann_dir: str, image_path: str):
 
 
 def remove_sly_tag_name_if_not_unique(sly_meta, new_meta):
-    for s_tag in sly_meta["tags"]:
-        for n_tag in new_meta["tags"]:
-            if s_tag["name"] == n_tag["name"]:
-                sly_meta["tags"].remove(s_tag)
-                sly.logger.warning(
-                    f"There was tag [{s_tag['name']}] in Supervisely meta with the same name as the grouping tag on the import! Supervisely tag was replaced with import tag. If you want to separate them, you need to manually correct the annotation and meta .json files, or select a different grouping tag on import."
-                )
+    new_names = {n_tag["name"] for n_tag in new_meta["tags"]}
+    for s_tag in list(sly_meta["tags"]):  # iterate over a copy: the list is modified
+        if s_tag["name"] in new_names:
+            sly_meta["tags"].remove(s_tag)
+            sly.logger.warning(
+                f"There was tag [{s_tag['name']}] in Supervisely meta with the same name as the grouping tag on the import! Supervisely tag was replaced with import tag. If you want to separate them, you need to manually correct the annotation and meta .json files, or select a different grouping tag on import."
+            )
 
 
 def check_unique_name(lst: List[Dict[str, str]]) -> None:
